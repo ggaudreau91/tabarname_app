@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Copy, Check } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ export default function ComptePage() {
   const [cardsByRoom, setCardsByRoom] = useState<Record<string, number>>({});
   const [selfId, setSelfId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [idCopied, setIdCopied] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -99,9 +101,34 @@ export default function ComptePage() {
     <main className="max-w-3xl mx-auto px-6 py-12 space-y-10">
       <header>
         <h1 className="font-display text-4xl font-bold mb-2">{t("compte.title")}</h1>
-        <div className="text-xs text-muted-foreground font-mono">
-          {selfId ? selfId.slice(0, 8) + "…" : ""}
-        </div>
+        {selfId && (
+          <button
+            type="button"
+            onClick={async () => {
+              await navigator.clipboard.writeText(selfId);
+              setIdCopied(true);
+              setTimeout(() => setIdCopied(false), 2000);
+            }}
+            className="inline-flex items-center gap-2 font-mono"
+            style={{
+              fontSize: 11,
+              color: "var(--brun-mid)",
+              letterSpacing: "0.05em",
+              background: "var(--creme-2)",
+              border: "1px solid var(--creme-3)",
+              borderRadius: 4,
+              padding: "4px 8px",
+            }}
+            title="Copier ton UUID (utile pour ADMIN_PLAYER_IDS sur Vercel)"
+          >
+            <span>{selfId}</span>
+            {idCopied ? (
+              <Check size={11} strokeWidth={3} color="var(--green-pret)" />
+            ) : (
+              <Copy size={11} strokeWidth={2} />
+            )}
+          </button>
+        )}
       </header>
 
       {/* Spotify */}
