@@ -87,6 +87,7 @@ export default function RoomPage({
   const [submittingAction, setSubmittingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
   const playedUriRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -185,6 +186,7 @@ export default function RoomPage({
 
     (async () => {
       const r = await fetchRoom();
+      setInitialLoadDone(true);
       if (!r) return;
       await Promise.all([
         fetchPlaylist(r.playlist_id),
@@ -402,28 +404,128 @@ export default function RoomPage({
   // ----- RENDERS -----
 
   if (!room) {
+    if (!initialLoadDone) {
+      return (
+        <main className="flex min-h-[60vh] items-center justify-center">
+          <p style={{ color: "var(--brun-mid)" }}>Chargement…</p>
+        </main>
+      );
+    }
     return (
-      <main className="flex min-h-[60vh] items-center justify-center">
-        <p className="text-muted-foreground">Chargement…</p>
+      <main
+        className="min-h-screen flex flex-col items-center justify-center text-center"
+        style={{ background: "var(--creme)", color: "var(--brun)", padding: 24 }}
+      >
+        <div className="max-w-md w-full space-y-4">
+          <h1
+            className="font-display font-semibold"
+            style={{ fontSize: 48, letterSpacing: "-0.03em", lineHeight: 1 }}
+          >
+            <span className="italic">Salle</span> introuvable
+          </h1>
+          <p style={{ color: "var(--brun-mid)" }}>
+            Le code{" "}
+            <code
+              className="font-mono"
+              style={{
+                background: "var(--creme-2)",
+                padding: "2px 8px",
+                borderRadius: 3,
+              }}
+            >
+              {upperCode}
+            </code>{" "}
+            ne correspond à aucune salle active. Vérifie l&apos;orthographe
+            avec ton hôte.
+          </p>
+          <div className="flex gap-3 justify-center mt-6">
+            <button
+              onClick={() => router.push("/parties/rejoindre")}
+              className="inline-flex items-center justify-center font-semibold rounded-md"
+              style={{
+                background: "var(--oxblood)",
+                color: "var(--creme)",
+                padding: "12px 24px",
+              }}
+            >
+              Entrer un autre code
+            </button>
+            <button
+              onClick={() => router.push("/")}
+              className="inline-flex items-center justify-center font-semibold rounded-md"
+              style={{
+                background: "transparent",
+                color: "var(--brun)",
+                padding: "12px 24px",
+                border: "1.5px solid var(--brun)",
+              }}
+            >
+              Accueil
+            </button>
+          </div>
+        </div>
       </main>
     );
   }
 
   if (!selfId || !players.some((p) => p.player_id === selfId)) {
     return (
-      <main className="max-w-md mx-auto px-6 py-16 space-y-4 text-center">
-        <p>Tu n&apos;es pas encore dans cette salle.</p>
-        <button
-          onClick={() => router.push("/parties/rejoindre")}
-          className="inline-flex items-center justify-center rounded-md font-semibold"
-          style={{
-            background: "var(--oxblood)",
-            color: "var(--creme)",
-            padding: "12px 24px",
-          }}
-        >
-          Rejoindre
-        </button>
+      <main
+        className="min-h-screen flex flex-col items-center justify-center"
+        style={{ background: "var(--creme)", color: "var(--brun)", padding: 24 }}
+      >
+        <div className="max-w-md w-full text-center space-y-5">
+          <div
+            className="font-mono"
+            style={{
+              fontSize: 11,
+              color: "var(--brun-mid)",
+              letterSpacing: "0.18em",
+            }}
+          >
+            INVITATION
+          </div>
+          <h1
+            className="font-display font-semibold"
+            style={{
+              fontSize: 56,
+              letterSpacing: "-0.03em",
+              lineHeight: 0.95,
+            }}
+          >
+            <span className="italic">Bienvenue</span> dans la salle
+          </h1>
+          <div
+            className="font-display font-bold"
+            style={{
+              fontSize: 64,
+              letterSpacing: "0.04em",
+              color: "var(--oxblood)",
+              fontVariationSettings: '"opsz" 144',
+            }}
+          >
+            {upperCode.slice(0, 3)}·{upperCode.slice(3)}
+          </div>
+          {players.length > 0 && (
+            <p style={{ color: "var(--brun-mid)" }}>
+              {players.length} joueur{players.length > 1 ? "s" : ""} déjà{" "}
+              {players.length > 1 ? "présents" : "présent"}. Choisis un pseudo
+              pour rejoindre.
+            </p>
+          )}
+          <button
+            onClick={() => router.push(`/parties/rejoindre?code=${upperCode}`)}
+            className="inline-flex items-center gap-2 font-semibold rounded-md"
+            style={{
+              background: "var(--oxblood)",
+              color: "var(--creme)",
+              padding: "16px 32px",
+              fontSize: 17,
+            }}
+          >
+            <span>→</span> Rejoindre la salle
+          </button>
+        </div>
       </main>
     );
   }
