@@ -14,21 +14,23 @@ type Props = {
 export function MysteryCard({ isYouActive }: Props) {
   return (
     <div
-      className="flex flex-col items-stretch relative overflow-hidden"
+      className="flex flex-col items-stretch relative overflow-hidden p-4 sm:p-[18px]"
       style={{
         background: "var(--creme)",
         border: "1.5px solid var(--brun)",
         borderRadius: 10,
-        padding: 18,
       }}
     >
       <MetaLabel>Carte mystère</MetaLabel>
-      <div className="relative mt-2 mx-auto" style={{ height: 200, width: 220 }}>
+      <div
+        className="relative mt-2 mx-auto"
+        style={{ height: 200, width: "min(220px, 100%)" }}
+      >
         <div
           className="absolute"
           style={{
             top: -10,
-            left: 25,
+            left: "calc(50% - 60px)",
             zIndex: 1,
             animation: "spin 8s linear infinite",
           }}

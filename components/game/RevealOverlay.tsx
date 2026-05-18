@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { ArrowRight, ExternalLink, Play } from "lucide-react";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { YearCard } from "@/components/brand/YearCard";
 import { Stamp, MetaLabel } from "@/components/brand/Stamp";
@@ -181,7 +182,7 @@ export function RevealOverlay({
                   background: "rgba(250,246,240,0.5)",
                 }}
               />
-              <div style={{ color: "var(--or)", fontSize: 24 }}>→</div>
+              <ArrowRight size={22} color="var(--or)" strokeWidth={2.5} />
             </div>
             <div
               className="font-mono"
@@ -379,12 +380,14 @@ export function RevealOverlay({
                     href={spotifyHref}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1"
                     style={{
                       color: "var(--green-spotify)",
                       fontWeight: 600,
                     }}
                   >
-                    ▶ Ouvrir sur Spotify
+                    Ouvrir sur Spotify
+                    <ExternalLink size={11} strokeWidth={2.5} />
                   </a>
                 </>
               )}
@@ -397,7 +400,7 @@ export function RevealOverlay({
           {canAdvance && (
             <button
               onClick={onAdvance}
-              className="inline-flex items-center gap-2 font-semibold rounded-md"
+              className="inline-flex items-center gap-2.5 font-semibold rounded-md"
               style={{
                 background: "var(--or)",
                 color: "var(--brun)",
@@ -405,7 +408,7 @@ export function RevealOverlay({
                 fontSize: 17,
               }}
             >
-              <span>▶</span> Prochain tour
+              <Play size={18} fill="var(--brun)" strokeWidth={0} /> Prochain tour
             </button>
           )}
           {!canAdvance && (

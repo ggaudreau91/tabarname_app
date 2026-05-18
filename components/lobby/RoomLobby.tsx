@@ -1,5 +1,6 @@
 "use client";
 
+import { ArrowLeft, Copy, Link as LinkIcon, Play, Plus, Star } from "lucide-react";
 import { Stamp, MetaLabel } from "@/components/brand/Stamp";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { VinylDisc } from "@/components/brand/VinylDisc";
@@ -94,18 +95,17 @@ export function RoomLobby({
     <div className="grid lg:grid-cols-[1.05fr_0.95fr] min-h-screen">
       {/* LEFT — code + invite */}
       <div
-        className="relative flex flex-col"
+        className="relative flex flex-col px-5 py-8 sm:px-8 sm:py-10"
         style={{
           background: "var(--brun)",
           color: "var(--creme)",
-          padding: "40px 32px",
         }}
       >
         <div className="flex items-center justify-between">
           <MetaLabel color="var(--or)">Tabarname · Lobby</MetaLabel>
           <button
             onClick={onLeave}
-            className="font-mono"
+            className="inline-flex items-center gap-1.5 font-mono"
             style={{
               background: "transparent",
               color: "var(--creme)",
@@ -116,7 +116,7 @@ export function RoomLobby({
               letterSpacing: "0.1em",
             }}
           >
-            ← QUITTER
+            <ArrowLeft size={12} strokeWidth={2.5} /> QUITTER
           </button>
         </div>
 
@@ -126,12 +126,11 @@ export function RoomLobby({
         </div>
         <div className="mt-4 relative">
           <div
-            className="relative flex items-stretch gap-7"
+            className="relative flex items-stretch gap-4 sm:gap-7 px-5 py-6 sm:px-9 sm:py-8"
             style={{
               background: "var(--creme)",
               color: "var(--brun)",
               borderRadius: 10,
-              padding: "32px 38px",
               boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
             }}
           >
@@ -162,8 +161,8 @@ export function RoomLobby({
               <div
                 className="font-display font-bold flex items-baseline gap-1 mt-2"
                 style={{
-                  fontSize: "clamp(56px, 10vw, 92px)",
-                  letterSpacing: "0.04em",
+                  fontSize: "clamp(40px, 12vw, 92px)",
+                  letterSpacing: "0.02em",
                   lineHeight: 1,
                   fontVariationSettings: '"opsz" 144',
                 }}
@@ -214,7 +213,8 @@ export function RoomLobby({
                 fontSize: 13,
               }}
             >
-              <span>📋</span> {copied === "code" ? "Copié!" : "Copier le code"}
+              <Copy size={14} strokeWidth={2} />
+              {copied === "code" ? "Copié!" : "Copier le code"}
             </button>
             <button
               onClick={onCopyLink}
@@ -227,7 +227,8 @@ export function RoomLobby({
                 fontSize: 13,
               }}
             >
-              <span>↗</span> {copied === "link" ? "Copié!" : "Copier le lien"}
+              <LinkIcon size={14} strokeWidth={2} />
+              {copied === "link" ? "Copié!" : "Copier le lien"}
             </button>
           </div>
         </div>
@@ -293,11 +294,8 @@ export function RoomLobby({
 
       {/* RIGHT — players + settings */}
       <div
-        className="flex flex-col"
-        style={{
-          background: "var(--creme)",
-          padding: "40px 32px",
-        }}
+        className="flex flex-col px-5 py-8 sm:px-8 sm:py-10"
+        style={{ background: "var(--creme)" }}
       >
         <div className="flex items-baseline justify-between">
           <div>
@@ -374,14 +372,15 @@ export function RoomLobby({
                     )}
                     {isPlayerHost && (
                       <span
-                        className="font-mono font-bold"
+                        className="inline-flex items-center gap-1 font-mono font-bold"
                         style={{
                           fontSize: 10,
                           color: "var(--or)",
                           letterSpacing: "0.15em",
                         }}
                       >
-                        ★ HÔTE
+                        <Star size={10} fill="var(--or)" strokeWidth={0} />
+                        HÔTE
                       </span>
                     )}
                     {p.has_premium && (
@@ -454,10 +453,9 @@ export function RoomLobby({
                     height: 44,
                     border: "1.5px dashed var(--creme-3)",
                     color: "var(--creme-3)",
-                    fontSize: 20,
                   }}
                 >
-                  +
+                  <Plus size={18} strokeWidth={2} />
                 </div>
                 <div
                   className="italic"
@@ -517,7 +515,7 @@ export function RoomLobby({
             <button
               onClick={onStart}
               disabled={!canStart || starting}
-              className="w-full flex items-center justify-center gap-2 font-semibold rounded-md disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2.5 font-semibold rounded-md disabled:opacity-50"
               style={{
                 background: "var(--oxblood)",
                 color: "var(--creme)",
@@ -525,7 +523,7 @@ export function RoomLobby({
                 fontSize: 17,
               }}
             >
-              <span style={{ fontSize: 16 }}>▶</span>
+              <Play size={18} fill="var(--creme)" strokeWidth={0} />
               {starting ? "Démarrage…" : "Démarrer la partie"}
             </button>
           ) : (

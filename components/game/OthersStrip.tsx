@@ -1,5 +1,6 @@
 "use client";
 
+import { Flag, Check } from "lucide-react";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { MetaLabel } from "@/components/brand/Stamp";
 
@@ -30,10 +31,10 @@ export function OthersStrip({
 }: Props) {
   return (
     <div
+      className="px-4 sm:px-6 py-5"
       style={{
         borderTop: "1px solid var(--creme-3)",
         background: "var(--creme)",
-        padding: "20px 24px",
       }}
     >
       <div className="flex items-baseline justify-between mb-3.5">
@@ -41,7 +42,7 @@ export function OthersStrip({
         {canChallenge && !hasChallenged && (
           <button
             onClick={onChallenge}
-            className="font-medium"
+            className="inline-flex items-center gap-1.5 font-medium"
             style={{
               background: "var(--creme-2)",
               border: "1px solid var(--creme-3)",
@@ -51,19 +52,19 @@ export function OthersStrip({
               fontSize: 12,
             }}
           >
-            ⚑ Contester un placement
+            <Flag size={12} strokeWidth={2.5} /> Contester un placement
           </button>
         )}
         {hasChallenged && (
           <span
-            className="font-mono"
+            className="inline-flex items-center gap-1.5 font-mono"
             style={{
               fontSize: 11,
               color: "var(--green-pret)",
               letterSpacing: "0.1em",
             }}
           >
-            ✓ CONTESTATION ENVOYÉE
+            <Check size={12} strokeWidth={3} /> CONTESTATION ENVOYÉE
           </span>
         )}
       </div>

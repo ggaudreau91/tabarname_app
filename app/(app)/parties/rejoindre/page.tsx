@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  Plus,
+} from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
 import { VinylDisc } from "@/components/brand/VinylDisc";
@@ -254,7 +261,7 @@ export default function JoinPartyPage() {
     >
       {/* TOP NAV */}
       <div
-        className="flex items-center justify-between px-6 sm:px-14 py-5"
+        className="flex items-center justify-between px-5 sm:px-12 py-5"
         style={{ borderBottom: "1px solid var(--creme-3)" }}
       >
         <div className="flex items-center gap-2.5">
@@ -284,7 +291,7 @@ export default function JoinPartyPage() {
         </div>
         <Link
           href="/"
-          className="font-mono"
+          className="inline-flex items-center gap-1.5 font-mono"
           style={{
             background: "transparent",
             color: "var(--brun)",
@@ -295,16 +302,13 @@ export default function JoinPartyPage() {
             letterSpacing: "0.1em",
           }}
         >
-          ← RETOUR
+          <ArrowLeft size={12} strokeWidth={2.5} /> RETOUR
         </Link>
       </div>
 
       <div className="grid lg:grid-cols-[1.15fr_0.85fr] flex-1">
         {/* LEFT HERO */}
-        <section
-          className="relative overflow-hidden flex flex-col"
-          style={{ padding: "48px 32px" }}
-        >
+        <section className="relative overflow-hidden flex flex-col px-5 py-10 sm:px-10 sm:py-12 lg:px-16">
           {/* Decorative ↪ */}
           <div
             className="font-display italic font-bold pointer-events-none select-none absolute"
@@ -366,7 +370,7 @@ export default function JoinPartyPage() {
             {/* Code entry */}
             <div className="mt-10">
               <MetaLabel>Code de la salle</MetaLabel>
-              <div className="mt-3 flex items-center gap-1.5 flex-wrap">
+              <div className="mt-3 flex items-center gap-1 sm:gap-1.5">
                 {Array.from({ length: CODE_LENGTH }).map((_, i) => (
                   <div key={`g-${i}`} className="flex items-center">
                     <input
@@ -381,14 +385,17 @@ export default function JoinPartyPage() {
                       autoComplete="off"
                       autoCapitalize="characters"
                       inputMode="text"
+                      aria-label={`Caractère ${i + 1} du code`}
                       className="font-display font-bold text-center outline-none"
                       style={{
-                        width: 56,
-                        height: 76,
+                        width: "min(13.5vw, 56px)",
+                        height: "min(18vw, 76px)",
+                        minWidth: 38,
+                        minHeight: 52,
                         background: "var(--creme)",
                         border: `2px solid ${focusIndex === i ? "var(--oxblood)" : "var(--brun)"}`,
                         borderRadius: 8,
-                        fontSize: 48,
+                        fontSize: "clamp(32px, 9vw, 48px)",
                         color: "var(--brun)",
                         letterSpacing: "-0.02em",
                         fontVariationSettings: '"opsz" 144',
@@ -396,10 +403,10 @@ export default function JoinPartyPage() {
                     />
                     {i === 2 && (
                       <div
-                        className="self-center mx-1.5"
+                        className="self-center mx-1 sm:mx-1.5"
                         style={{
-                          width: 16,
-                          height: 4,
+                          width: 12,
+                          height: 3,
                           background: "var(--brun)",
                         }}
                       />
@@ -418,16 +425,15 @@ export default function JoinPartyPage() {
                 {!searching && foundRoom && (
                   <>
                     <span
-                      className="inline-flex items-center justify-center rounded-full font-bold"
+                      className="inline-flex items-center justify-center rounded-full"
                       style={{
                         width: 16,
                         height: 16,
                         background: "var(--green-spotify)",
                         color: "var(--creme)",
-                        fontSize: 10,
                       }}
                     >
-                      ✓
+                      <Check size={10} strokeWidth={3.5} />
                     </span>
                     Salle trouvée
                     {foundRoom.host && (
@@ -488,7 +494,7 @@ export default function JoinPartyPage() {
               <button
                 type="submit"
                 disabled={!canSubmit}
-                className="inline-flex items-center gap-2 font-semibold rounded-md disabled:opacity-50"
+                className="inline-flex items-center gap-2.5 font-semibold rounded-md disabled:opacity-50"
                 style={{
                   background: "var(--oxblood)",
                   color: "var(--creme)",
@@ -496,7 +502,7 @@ export default function JoinPartyPage() {
                   fontSize: 17,
                 }}
               >
-                <span>→</span>
+                <ArrowRight size={18} strokeWidth={2.5} />
                 {submitting ? "Connexion…" : "Rejoindre la salle"}
               </button>
               <div
@@ -518,11 +524,10 @@ export default function JoinPartyPage() {
 
         {/* RIGHT SIDEBAR */}
         <aside
-          className="flex flex-col"
+          className="flex flex-col px-5 py-10 sm:px-8 sm:py-12"
           style={{
             background: "var(--creme-2)",
             borderLeft: "1px solid var(--creme-3)",
-            padding: "48px 32px",
           }}
         >
           {/* Recents */}
@@ -592,9 +597,11 @@ export default function JoinPartyPage() {
                       {r.players} JOUEUR{r.players > 1 ? "S" : ""} · {r.when}
                     </div>
                   </div>
-                  <span style={{ color: "var(--brun-mid)", fontSize: 18 }}>
-                    ↗
-                  </span>
+                  <ArrowUpRight
+                    size={18}
+                    strokeWidth={2}
+                    color="var(--brun-mid)"
+                  />
                 </button>
               ))}
             </div>
@@ -646,7 +653,7 @@ export default function JoinPartyPage() {
               </div>
               <Link
                 href="/parties/nouvelle"
-                className="inline-flex mt-4 font-semibold rounded-md"
+                className="inline-flex items-center gap-1.5 mt-4 font-semibold rounded-md"
                 style={{
                   background: "var(--or)",
                   color: "var(--brun)",
@@ -654,7 +661,7 @@ export default function JoinPartyPage() {
                   fontSize: 14,
                 }}
               >
-                ＋ Nouvelle partie
+                <Plus size={14} strokeWidth={2.5} /> Nouvelle partie
               </Link>
             </div>
           </div>

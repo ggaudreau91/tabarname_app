@@ -1,3 +1,5 @@
+import { Star } from "lucide-react";
+
 type Props = {
   name: string;
   color?: string;
@@ -32,7 +34,7 @@ export function PlayerAvatar({
       </div>
       {isHost && (
         <div
-          className="absolute flex items-center justify-center rounded-full font-extrabold"
+          className="absolute flex items-center justify-center rounded-full"
           style={{
             top: -4,
             right: -4,
@@ -40,11 +42,10 @@ export function PlayerAvatar({
             height: 18,
             background: "var(--or)",
             border: "2px solid var(--creme)",
-            fontSize: 9,
             color: "var(--brun)",
           }}
         >
-          ★
+          <Star size={10} fill="var(--brun)" strokeWidth={2.5} />
         </div>
       )}
     </div>

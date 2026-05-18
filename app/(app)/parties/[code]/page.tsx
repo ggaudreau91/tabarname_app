@@ -15,6 +15,7 @@ import { TimelineRail } from "@/components/game/TimelineRail";
 import { OthersStrip } from "@/components/game/OthersStrip";
 import { RevealOverlay } from "@/components/game/RevealOverlay";
 import { PassDeviceOverlay } from "@/components/game/PassDeviceOverlay";
+import { ArrowDown, Flag } from "lucide-react";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { MetaLabel } from "@/components/brand/Stamp";
 import { YearCard } from "@/components/brand/YearCard";
@@ -339,6 +340,13 @@ export default function RoomPage({
       console.log("[playback] skip: SDK not ready yet", { isReady, deviceId });
       return;
     }
+    // En mode local, on attend que l'utilisateur clique "Je suis prêt"
+    // avant de lancer la lecture — les browsers bloquent l'autoplay sans
+    // gesture utilisateur, et le clic sur le bouton compte comme tel.
+    if (room?.mode === "local_pass" && !passReady) {
+      console.log("[playback] skip: waiting for user 'ready' gesture");
+      return;
+    }
     console.log("[playback] attempt", turn.spotify_uri);
     playedUriRef.current = turn.spotify_uri;
     playUri(turn.spotify_uri).catch((e) => {
@@ -347,7 +355,7 @@ export default function RoomPage({
       // Reset pour retry au prochain re-render
       playedUriRef.current = null;
     });
-  }, [turn, isReady, deviceId, product, room, selfId, playUri, ownedPlayerIds]);
+  }, [turn, isReady, deviceId, product, room, selfId, playUri, ownedPlayerIds, passReady]);
 
   const isLocalMode = room?.mode === "local_pass";
   const isHost =
@@ -848,13 +856,16 @@ export default function RoomPage({
       <SpotifyStatusBar
         needsToPlay={
           room.mode === "online_premium" ||
-          (room.mode === "host_audio" && selfId === room.host_player_id)
+          room.mode === "local_pass" ||
+          (room.mode === "host_audio" &&
+            (selfId === room.host_player_id ||
+              ownedPlayerIds.includes(room.host_player_id)))
         }
       />
 
-      <div className="flex-1 px-6 sm:px-10 py-8 max-w-7xl mx-auto w-full flex flex-col gap-7">
+      <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 max-w-7xl mx-auto w-full flex flex-col gap-6 sm:gap-7">
         {turn && (
-          <div className="grid lg:grid-cols-[300px_1fr] gap-8 items-stretch">
+          <div className="grid lg:grid-cols-[260px_1fr] gap-5 lg:gap-8 items-stretch">
             <MysteryCard isYouActive={isActive} />
             {activePlayer && (
               <AudioPanel
@@ -909,7 +920,8 @@ export default function RoomPage({
                 fontSize: 15,
               }}
             >
-              <span>↓</span> Confirmer le placement
+              <ArrowDown size={16} strokeWidth={2.5} />
+              Confirmer le placement
             </button>
           </div>
         )}
@@ -949,7 +961,7 @@ export default function RoomPage({
                   fontSize: 15,
                 }}
               >
-                ⚑ Contester
+                <Flag size={14} strokeWidth={2.5} /> Contester
               </button>
             </div>
           </div>

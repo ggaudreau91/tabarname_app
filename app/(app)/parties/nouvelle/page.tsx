@@ -3,6 +3,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Check,
+  Globe,
+  Headphones,
+  Play,
+  Plus,
+  RotateCw,
+  Users,
+  X,
+} from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
 import { VinylDisc } from "@/components/brand/VinylDisc";
@@ -157,11 +168,11 @@ export default function NewPartyPage() {
     >
       {/* LEFT — masthead */}
       <div
-        className="relative overflow-hidden flex flex-col"
+        className="relative overflow-hidden flex flex-col px-5 py-8 sm:px-10 sm:py-10 lg:px-12"
         style={{
           background: "var(--brun)",
           color: "var(--creme)",
-          padding: "40px 48px",
+          minHeight: "min(36vh, 360px)",
         }}
       >
         <div className="absolute opacity-50" style={{ top: 60, right: -160 }}>
@@ -202,7 +213,7 @@ export default function NewPartyPage() {
           </div>
           <Link
             href="/"
-            className="font-mono"
+            className="inline-flex items-center gap-1.5 font-mono"
             style={{
               background: "transparent",
               color: "var(--creme)",
@@ -213,7 +224,7 @@ export default function NewPartyPage() {
               letterSpacing: "0.1em",
             }}
           >
-            ← RETOUR
+            <ArrowLeft size={12} strokeWidth={2.5} /> RETOUR
           </Link>
         </div>
 
@@ -229,7 +240,7 @@ export default function NewPartyPage() {
           <h1
             className="font-display font-semibold"
             style={{
-              fontSize: "clamp(56px, 8vw, 96px)",
+              fontSize: "clamp(48px, 9vw, 96px)",
               lineHeight: 0.92,
               letterSpacing: "-0.035em",
               fontVariationSettings: '"opsz" 144',
@@ -330,8 +341,7 @@ export default function NewPartyPage() {
       {/* RIGHT — form */}
       <form
         onSubmit={onSubmit}
-        className="flex flex-col overflow-auto"
-        style={{ padding: "40px 32px 32px" }}
+        className="flex flex-col overflow-auto px-5 py-8 sm:px-8 sm:py-10"
       >
         {/* 01 Pseudo / Joueurs locaux */}
         {mode === "local_pass" ? (
@@ -397,17 +407,17 @@ export default function NewPartyPage() {
                     <button
                       type="button"
                       onClick={() => removeLocalPlayer(i)}
-                      className="font-mono"
+                      aria-label={`Retirer le joueur ${i + 1}`}
+                      className="flex items-center justify-center"
                       style={{
                         padding: "0 14px",
                         background: "transparent",
                         border: "1.5px solid var(--creme-3)",
                         borderRadius: 8,
-                        fontSize: 14,
                         color: "var(--brun-mid)",
                       }}
                     >
-                      ✕
+                      <X size={16} strokeWidth={2.5} />
                     </button>
                   )}
                 </div>
@@ -416,7 +426,7 @@ export default function NewPartyPage() {
                 <button
                   type="button"
                   onClick={addLocalPlayer}
-                  className="w-full font-mono font-semibold"
+                  className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
                   style={{
                     padding: "14px",
                     background: "var(--creme-2)",
@@ -427,7 +437,8 @@ export default function NewPartyPage() {
                     letterSpacing: "0.1em",
                   }}
                 >
-                  + AJOUTER UN JOUEUR
+                  <Plus size={14} strokeWidth={2.5} />
+                  AJOUTER UN JOUEUR
                 </button>
               )}
             </div>
@@ -467,7 +478,7 @@ export default function NewPartyPage() {
               <button
                 type="button"
                 onClick={() => setPseudo(randomPseudo())}
-                className="font-mono font-semibold"
+                className="inline-flex items-center gap-1.5 font-mono font-semibold"
                 style={{
                   padding: "0 18px",
                   background: "var(--creme-2)",
@@ -478,7 +489,7 @@ export default function NewPartyPage() {
                   letterSpacing: "0.1em",
                 }}
               >
-                ↻ RANDOM
+                <RotateCw size={12} strokeWidth={2.5} /> RANDOM
               </button>
             </div>
           </div>
@@ -559,7 +570,7 @@ export default function NewPartyPage() {
                     </div>
                     {selected && (
                       <div
-                        className="absolute flex items-center justify-center rounded-full font-bold"
+                        className="absolute flex items-center justify-center rounded-full"
                         style={{
                           top: 10,
                           right: 10,
@@ -567,10 +578,9 @@ export default function NewPartyPage() {
                           height: 18,
                           background: "var(--oxblood)",
                           color: "var(--creme)",
-                          fontSize: 11,
                         }}
                       >
-                        ✓
+                        <Check size={11} strokeWidth={3} />
                       </div>
                     )}
                   </button>
@@ -588,27 +598,27 @@ export default function NewPartyPage() {
               [
                 {
                   m: "online_premium" as const,
-                  icon: "🌐",
+                  Icon: Globe,
                   title: "En ligne",
                   body:
                     "Chacun joue sur son appareil. Chaque joueur a besoin de Premium.",
                 },
                 {
                   m: "host_audio" as const,
-                  icon: "🔊",
+                  Icon: Headphones,
                   title: "Audio chez l'hôte",
                   body:
                     "Plusieurs appareils, audio sur celui de l'hôte. Un Premium suffit.",
                 },
                 {
                   m: "local_pass" as const,
-                  icon: "🪑",
+                  Icon: Users,
                   title: "Autour d'une table",
                   body:
                     "Un seul appareil qu'on se passe. Idéal pour les apéros, party de cuisine.",
                 },
               ]
-            ).map(({ m, icon, title, body }) => {
+            ).map(({ m, Icon, title, body }) => {
               const selected = m === mode;
               return (
                 <button
@@ -647,8 +657,8 @@ export default function NewPartyPage() {
                       />
                     )}
                   </div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span style={{ fontSize: 18 }}>{icon}</span>
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <Icon size={20} strokeWidth={1.75} color="var(--brun)" />
                     <div
                       className="font-display font-semibold"
                       style={{ fontSize: 18, letterSpacing: "-0.01em" }}
@@ -798,7 +808,7 @@ export default function NewPartyPage() {
           <button
             type="submit"
             disabled={!canSubmit}
-            className="flex-1 flex items-center justify-center gap-2 font-semibold rounded-md disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2.5 font-semibold rounded-md disabled:opacity-50"
             style={{
               background: "var(--oxblood)",
               color: "var(--creme)",
@@ -806,7 +816,7 @@ export default function NewPartyPage() {
               fontSize: 17,
             }}
           >
-            <span>▶</span>
+            <Play size={18} fill="var(--creme)" strokeWidth={0} />
             {submitting ? "Création…" : "Créer la partie"}
           </button>
           <div

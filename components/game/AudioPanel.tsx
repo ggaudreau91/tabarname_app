@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Pause } from "lucide-react";
 import { MetaLabel } from "@/components/brand/Stamp";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 
@@ -44,12 +45,11 @@ export function AudioPanel({
 
   return (
     <div
-      className="relative overflow-hidden flex flex-col"
+      className="relative overflow-hidden flex flex-col p-5 sm:p-7"
       style={{
         background: "var(--brun)",
         color: "var(--creme)",
         borderRadius: 10,
-        padding: "24px 28px",
       }}
     >
       <div className="flex items-start justify-between gap-6 flex-wrap">
@@ -65,9 +65,9 @@ export function AudioPanel({
               <div
                 className="font-display font-semibold"
                 style={{
-                  fontSize: 30,
+                  fontSize: "clamp(20px, 5vw, 30px)",
                   letterSpacing: "-0.02em",
-                  lineHeight: 1,
+                  lineHeight: 1.05,
                 }}
               >
                 <span className="italic">{isYouActive ? "Toi" : activePseudo}</span>
@@ -88,7 +88,7 @@ export function AudioPanel({
           <div
             className="font-display font-bold mt-1"
             style={{
-              fontSize: 44,
+              fontSize: "clamp(32px, 7vw, 44px)",
               color: "var(--creme)",
               letterSpacing: "-0.02em",
               lineHeight: 1,
@@ -111,12 +111,11 @@ export function AudioPanel({
             height: 56,
             background: "var(--or)",
             color: "var(--brun)",
-            fontSize: 22,
             boxShadow: "0 4px 14px rgba(212,166,86,0.4)",
           }}
           aria-label="Lecture en cours"
         >
-          ⏸
+          <Pause size={22} fill="var(--brun)" strokeWidth={0} />
         </div>
         <div className="flex-1">
           <div

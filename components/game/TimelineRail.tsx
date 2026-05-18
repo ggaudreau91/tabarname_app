@@ -107,12 +107,11 @@ export function TimelineRail({
       </div>
 
       <div
-        className="mt-3.5 relative"
+        className="mt-3.5 relative p-4 sm:py-6 sm:px-5"
         style={{
           background: "var(--creme-2)",
           border: "1px solid var(--creme-3)",
           borderRadius: 10,
-          padding: "24px 22px",
         }}
       >
         <div

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRight, Plus } from "lucide-react";
 import { t } from "@/lib/i18n";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { YearCard } from "@/components/brand/YearCard";
@@ -149,13 +150,13 @@ export default function Home() {
                   fontSize: 17,
                 }}
               >
-                <span style={{ fontSize: 18 }}>＋</span>
+                <Plus size={18} strokeWidth={2.5} />
                 {t("landing.cta.create")}
               </Link>
 
               <form
                 action="/parties/rejoindre"
-                className="inline-flex items-center gap-2 rounded-md font-mono"
+                className="inline-flex items-center gap-2 rounded-md font-mono w-full sm:w-auto"
                 style={{
                   padding: "13px 18px",
                   border: "1.5px solid var(--brun)",
@@ -170,25 +171,26 @@ export default function Home() {
                 <input
                   name="code"
                   placeholder={t("landing.codePlaceholder")}
-                  className="bg-transparent outline-none font-mono font-semibold uppercase placeholder:opacity-40"
+                  className="bg-transparent outline-none font-mono font-semibold uppercase placeholder:opacity-40 flex-1 sm:flex-none"
                   style={{
                     fontSize: 17,
-                    width: 110,
                     letterSpacing: "0.15em",
                     color: "var(--brun)",
+                    width: "100%",
+                    maxWidth: 130,
                   }}
                 />
                 <button
                   type="submit"
-                  className="rounded font-semibold"
+                  className="rounded flex items-center justify-center"
                   style={{
                     background: "var(--brun)",
                     color: "var(--creme)",
-                    padding: "6px 12px",
-                    fontSize: 12,
+                    padding: "8px 12px",
                   }}
+                  aria-label="Rejoindre"
                 >
-                  →
+                  <ArrowRight size={14} strokeWidth={2.5} />
                 </button>
               </form>
             </div>

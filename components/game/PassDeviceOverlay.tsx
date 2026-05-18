@@ -1,5 +1,6 @@
 "use client";
 
+import { Play } from "lucide-react";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { MetaLabel, Stamp } from "@/components/brand/Stamp";
 import { VinylDisc } from "@/components/brand/VinylDisc";
@@ -73,7 +74,7 @@ export function PassDeviceOverlay({ pseudo, playerId, cardCount, onReady }: Prop
 
         <button
           onClick={onReady}
-          className="mt-12 inline-flex items-center gap-2 font-semibold rounded-md"
+          className="mt-12 inline-flex items-center gap-2.5 font-semibold rounded-md"
           style={{
             background: "var(--or)",
             color: "var(--brun)",
@@ -81,7 +82,7 @@ export function PassDeviceOverlay({ pseudo, playerId, cardCount, onReady }: Prop
             fontSize: 17,
           }}
         >
-          <span>▶</span> Je suis prêt
+          <Play size={18} fill="var(--brun)" strokeWidth={0} /> Je suis prêt
         </button>
       </div>
     </div>

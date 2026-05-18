@@ -19,15 +19,14 @@ export function GameTopBar({
 }: Props) {
   return (
     <div
-      className="flex items-center justify-between"
+      className="flex items-center justify-between flex-wrap gap-3 px-4 sm:px-6 py-4"
       style={{
-        padding: "16px 24px",
         background: "var(--brun)",
         color: "var(--creme)",
         borderBottom: "2px solid var(--or)",
       }}
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6">
         <div className="flex items-center gap-2">
           <div
             className="relative flex items-center justify-center rounded-full"
