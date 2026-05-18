@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Fraunces } from "next/font/google";
+import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -13,6 +13,12 @@ const fraunces = Fraunces({
   variable: "--font-display",
   subsets: ["latin"],
   axes: ["SOFT", "WONK", "opsz"],
+});
+
+// JetBrains Mono — pour les codes de salle, MetaLabels, tampons typo.
+const mono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${inter.variable} ${fraunces.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>

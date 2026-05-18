@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
-import { t } from "@/lib/i18n";
+import { VinylDisc } from "@/components/brand/VinylDisc";
+import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
+import { MetaLabel, SpotifyBadge } from "@/components/brand/Stamp";
 
 type Playlist = {
   id: string;
@@ -16,34 +15,74 @@ type Playlist = {
   name: string;
   description: string | null;
   cover_url: string | null;
+  track_count?: number;
 };
+
+const PLAYLIST_COLORS = [
+  "var(--oxblood)",
+  "var(--or)",
+  "var(--green-pret)",
+  "var(--brun)",
+];
+
+const RANDOM_PSEUDO_PARTS = {
+  adj: ["Ptit", "Gros", "Vieux", "Bibitte", "Toune", "Gros", "Ti-Cul", "Tabarn"],
+  noun: ["Gars", "Mine", "Tabar", "Pit", "Frette", "Boss", "Ouain", "Boucane"],
+};
+
+function randomPseudo(): string {
+  const a =
+    RANDOM_PSEUDO_PARTS.adj[
+      Math.floor(Math.random() * RANDOM_PSEUDO_PARTS.adj.length)
+    ];
+  const b =
+    RANDOM_PSEUDO_PARTS.noun[
+      Math.floor(Math.random() * RANDOM_PSEUDO_PARTS.noun.length)
+    ];
+  return `${a}${b}`;
+}
 
 export default function NewPartyPage() {
   const router = useRouter();
+  const supabase = useMemo(() => getSupabaseBrowser(), []);
   const { product } = useSpotifyPlayer();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
   const [mode, setMode] = useState<"online_premium" | "host_audio">("online_premium");
   const [winCards, setWinCards] = useState(10);
+  const [turnSeconds, setTurnSeconds] = useState(30);
   const [pseudo, setPseudo] = useState("");
+  const [selfId, setSelfId] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowser();
+    supabase.auth.getUser().then(({ data }) => {
+      setSelfId(data.user?.id ?? "");
+    });
     (async () => {
       const { data } = await supabase
         .from("curated_playlists")
         .select("id, slug, name, description, cover_url")
         .eq("is_active", true)
         .order("name");
-      setPlaylists(data ?? []);
-      if (data && data.length > 0) setPlaylistId(data[0].id);
-    })();
-  }, []);
+      const lists = (data ?? []) as Playlist[];
 
-  // L'hôte est toujours celui qui lit l'audio (même en mode host_audio).
-  // Donc le créateur doit avoir Premium peu importe le mode choisi.
+      const counts = await Promise.all(
+        lists.map(async (pl) => {
+          const { count } = await supabase
+            .from("curated_tracks")
+            .select("id", { count: "exact", head: true })
+            .eq("playlist_id", pl.id);
+          return { id: pl.id, count: count ?? 0 };
+        }),
+      );
+      const map = new Map(counts.map((c) => [c.id, c.count]));
+      setPlaylists(lists.map((p) => ({ ...p, track_count: map.get(p.id) ?? 0 })));
+      if (lists.length > 0) setPlaylistId(lists[0].id);
+    })();
+  }, [supabase]);
+
   const canSubmit =
     !!playlistId &&
     pseudo.trim().length > 0 &&
@@ -77,114 +116,645 @@ export default function NewPartyPage() {
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="text-3xl font-bold mb-2">{t("create.title")}</h1>
-      <p className="text-muted-foreground mb-8">{t("create.subtitle")}</p>
-
-      <form onSubmit={onSubmit} className="space-y-6">
-        <div className="space-y-2">
-          <Label>{t("create.playlist")}</Label>
-          {playlists.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t("create.noPlaylists")}</p>
-          ) : (
-            <div className="grid sm:grid-cols-2 gap-3">
-              {playlists.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setPlaylistId(p.id)}
-                  className={`text-left rounded-md border p-3 transition ${
-                    playlistId === p.id
-                      ? "border-primary bg-primary/5"
-                      : "border-input hover:bg-accent"
-                  }`}
-                >
-                  <div className="font-medium">{p.name}</div>
-                  {p.description && (
-                    <div className="text-xs text-muted-foreground mt-1">{p.description}</div>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
+    <main
+      className="grid lg:grid-cols-[1fr_1.2fr] min-h-screen"
+      style={{ background: "var(--creme)", color: "var(--brun)" }}
+    >
+      {/* LEFT — masthead */}
+      <div
+        className="relative overflow-hidden flex flex-col"
+        style={{
+          background: "var(--brun)",
+          color: "var(--creme)",
+          padding: "40px 48px",
+        }}
+      >
+        <div className="absolute opacity-50" style={{ top: 60, right: -160 }}>
+          <VinylDisc size={420} labelColor="var(--oxblood)" />
+        </div>
+        <div
+          className="absolute opacity-20"
+          style={{ bottom: -120, left: -80 }}
+        >
+          <VinylDisc size={300} labelColor="var(--or)" />
         </div>
 
-        <div className="space-y-2">
-          <Label>{t("create.mode")}</Label>
-          <div className="grid sm:grid-cols-2 gap-3">
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="relative flex items-center justify-center rounded-full"
+              style={{
+                width: 28,
+                height: 28,
+                background: "var(--creme)",
+              }}
+            >
+              <div
+                className="rounded-full"
+                style={{
+                  width: 10,
+                  height: 10,
+                  background: "var(--oxblood)",
+                }}
+              />
+            </div>
+            <div
+              className="font-display italic font-bold"
+              style={{ fontSize: 20 }}
+            >
+              Tabarname
+            </div>
+          </div>
+          <Link
+            href="/"
+            className="font-mono"
+            style={{
+              background: "transparent",
+              color: "var(--creme)",
+              border: "1px solid rgba(250,246,240,0.3)",
+              padding: "6px 12px",
+              borderRadius: 4,
+              fontSize: 12,
+              letterSpacing: "0.1em",
+            }}
+          >
+            ← RETOUR
+          </Link>
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-5">
+            <div
+              style={{ width: 40, height: 1, background: "var(--or)" }}
+            />
+            <MetaLabel color="var(--or)">Étape 1 sur 1 · Côté A</MetaLabel>
+          </div>
+          <h1
+            className="font-display font-semibold"
+            style={{
+              fontSize: "clamp(56px, 8vw, 96px)",
+              lineHeight: 0.92,
+              letterSpacing: "-0.035em",
+              fontVariationSettings: '"opsz" 144',
+            }}
+          >
+            <span className="italic">Nouvelle</span>
+            <br />
+            partie.
+          </h1>
+          <p
+            className="mt-6"
+            style={{
+              fontSize: 17,
+              lineHeight: 1.55,
+              color: "rgba(250,246,240,0.7)",
+              maxWidth: 380,
+            }}
+          >
+            Choisis la playlist, règle la partie, partage le code à ta gang.
+            Ça prend moins de 30 secondes.
+          </p>
+
+          <div
+            className="mt-9 flex gap-8 pt-6"
+            style={{ borderTop: "1px solid rgba(250,246,240,0.12)" }}
+          >
+            <div>
+              <div
+                className="font-display font-bold"
+                style={{
+                  fontSize: 32,
+                  color: "var(--or)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                2-8
+              </div>
+              <div
+                className="mt-0.5 font-mono"
+                style={{
+                  fontSize: 11,
+                  color: "rgba(250,246,240,0.5)",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                JOUEURS
+              </div>
+            </div>
+            <div>
+              <div
+                className="font-display font-bold"
+                style={{
+                  fontSize: 32,
+                  color: "var(--or)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                ~30
+                <span style={{ fontSize: 18 }}>min</span>
+              </div>
+              <div
+                className="mt-0.5 font-mono"
+                style={{
+                  fontSize: 11,
+                  color: "rgba(250,246,240,0.5)",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                DURÉE MOYENNE
+              </div>
+            </div>
+            <div>
+              <div
+                className="font-display font-bold"
+                style={{
+                  fontSize: 32,
+                  color: "var(--or)",
+                  letterSpacing: "-0.02em",
+                }}
+              >
+                {winCards}
+              </div>
+              <div
+                className="mt-0.5 font-mono"
+                style={{
+                  fontSize: 11,
+                  color: "rgba(250,246,240,0.5)",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                CARTES POUR GAGNER
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* RIGHT — form */}
+      <form
+        onSubmit={onSubmit}
+        className="flex flex-col overflow-auto"
+        style={{ padding: "40px 32px 32px" }}
+      >
+        {/* 01 Pseudo */}
+        <div>
+          <div className="flex items-baseline justify-between mb-2.5">
+            <MetaLabel>01 · Ton pseudo</MetaLabel>
+            <div
+              className="italic"
+              style={{ fontSize: 11, color: "var(--brun-mid)" }}
+            >
+              16 caractères max
+            </div>
+          </div>
+          <div className="flex gap-2.5 items-stretch">
+            <PlayerAvatar
+              name={pseudo || "Toi"}
+              color={
+                selfId ? colorForPlayer(selfId) : "var(--oxblood)"
+              }
+              size={56}
+            />
+            <input
+              value={pseudo}
+              onChange={(e) => setPseudo(e.target.value.slice(0, 16))}
+              placeholder="ex. PtitGars"
+              className="flex-1 font-display font-semibold outline-none"
+              style={{
+                padding: "14px 18px",
+                background: "var(--creme)",
+                border: "1.5px solid var(--brun)",
+                borderRadius: 8,
+                fontSize: 24,
+                color: "var(--brun)",
+                letterSpacing: "-0.01em",
+              }}
+            />
             <button
               type="button"
-              onClick={() => setMode("online_premium")}
-              className={`text-left rounded-md border p-3 transition ${
-                mode === "online_premium" ? "border-primary bg-primary/5" : "border-input hover:bg-accent"
-              }`}
+              onClick={() => setPseudo(randomPseudo())}
+              className="font-mono font-semibold"
+              style={{
+                padding: "0 18px",
+                background: "var(--creme-2)",
+                border: "1.5px solid var(--creme-3)",
+                borderRadius: 8,
+                fontSize: 12,
+                color: "var(--brun)",
+                letterSpacing: "0.1em",
+              }}
             >
-              <div className="font-medium">{t("create.modeOnline")}</div>
-              <div className="text-xs text-muted-foreground mt-1">{t("create.modeOnlineHint")}</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("host_audio")}
-              className={`text-left rounded-md border p-3 transition ${
-                mode === "host_audio" ? "border-primary bg-primary/5" : "border-input hover:bg-accent"
-              }`}
-            >
-              <div className="font-medium">{t("create.modeHost")}</div>
-              <div className="text-xs text-muted-foreground mt-1">{t("create.modeHostHint")}</div>
+              ↻ RANDOM
             </button>
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="win-cards">{t("create.winCondition")}</Label>
-          <Input
-            id="win-cards"
-            type="number"
-            min={3}
-            max={20}
-            value={winCards}
-            onChange={(e) => setWinCards(parseInt(e.target.value) || 10)}
-            className="w-32"
-          />
+        {/* 02 Playlist */}
+        <div className="mt-7">
+          <div className="flex items-baseline justify-between mb-3">
+            <MetaLabel>02 · Playlist</MetaLabel>
+            <Link
+              href="/admin/playlists"
+              style={{
+                fontSize: 12,
+                color: "var(--oxblood)",
+                fontWeight: 500,
+              }}
+            >
+              Importer une playlist →
+            </Link>
+          </div>
+          {playlists.length === 0 ? (
+            <div
+              className="rounded-md italic"
+              style={{
+                padding: 16,
+                background: "var(--creme-2)",
+                border: "1.5px dashed var(--creme-3)",
+                fontSize: 14,
+                color: "var(--brun-mid)",
+              }}
+            >
+              Aucune playlist active. Va sur{" "}
+              <Link href="/admin/playlists" className="underline">
+                /admin/playlists
+              </Link>{" "}
+              pour en importer une.
+            </div>
+          ) : (
+            <div className="grid sm:grid-cols-2 gap-2.5">
+              {playlists.map((p, i) => {
+                const selected = p.id === playlistId;
+                const color = PLAYLIST_COLORS[i % PLAYLIST_COLORS.length];
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setPlaylistId(p.id)}
+                    className="relative flex items-center gap-3 text-left"
+                    style={{
+                      padding: "14px 16px",
+                      background: selected
+                        ? "rgba(139,35,49,0.06)"
+                        : "var(--creme)",
+                      border: `1.5px solid ${selected ? "var(--oxblood)" : "var(--creme-3)"}`,
+                      borderRadius: 8,
+                    }}
+                  >
+                    <div className="shrink-0">
+                      <VinylDisc size={48} labelColor={color} label="LP" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="font-display font-semibold truncate"
+                        style={{ fontSize: 16, letterSpacing: "-0.01em" }}
+                      >
+                        {p.name}
+                      </div>
+                      <div
+                        className="mt-0.5 font-mono"
+                        style={{
+                          fontSize: 11,
+                          color: "var(--brun-mid)",
+                          letterSpacing: "0.05em",
+                        }}
+                      >
+                        {p.track_count ?? "?"} pistes
+                      </div>
+                    </div>
+                    {selected && (
+                      <div
+                        className="absolute flex items-center justify-center rounded-full font-bold"
+                        style={{
+                          top: 10,
+                          right: 10,
+                          width: 18,
+                          height: 18,
+                          background: "var(--oxblood)",
+                          color: "var(--creme)",
+                          fontSize: 11,
+                        }}
+                      >
+                        ✓
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="pseudo">{t("create.pseudo")}</Label>
-          <Input
-            id="pseudo"
-            value={pseudo}
-            onChange={(e) => setPseudo(e.target.value)}
-            placeholder={t("create.pseudoPlaceholder")}
-            maxLength={40}
-          />
+        {/* 03 Mode */}
+        <div className="mt-7">
+          <MetaLabel>03 · Mode de jeu</MetaLabel>
+          <div className="mt-3 grid sm:grid-cols-2 gap-2.5">
+            {(["online_premium", "host_audio"] as const).map((m) => {
+              const selected = m === mode;
+              const isOnline = m === "online_premium";
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  className="relative text-left"
+                  style={{
+                    padding: 18,
+                    background: selected
+                      ? "rgba(139,35,49,0.06)"
+                      : "var(--creme)",
+                    border: `1.5px solid ${selected ? "var(--oxblood)" : "var(--creme-3)"}`,
+                    borderRadius: 8,
+                  }}
+                >
+                  <div
+                    className="absolute rounded-full flex items-center justify-center"
+                    style={{
+                      top: 12,
+                      right: 12,
+                      width: 16,
+                      height: 16,
+                      background: selected ? "var(--oxblood)" : "transparent",
+                      border: `1.5px solid ${selected ? "var(--oxblood)" : "var(--creme-3)"}`,
+                    }}
+                  >
+                    {selected && (
+                      <div
+                        className="rounded-full"
+                        style={{
+                          width: 6,
+                          height: 6,
+                          background: "var(--creme)",
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span style={{ fontSize: 18 }}>{isOnline ? "🌐" : "🔊"}</span>
+                    <div
+                      className="font-display font-semibold"
+                      style={{ fontSize: 18, letterSpacing: "-0.01em" }}
+                    >
+                      {isOnline ? "En ligne" : "Audio chez l'hôte"}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--brun-2)",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {isOnline
+                      ? "Chacun joue chez soi. Chaque joueur a besoin d'un compte Spotify Premium."
+                      : "En personne autour d'un speaker. Un seul Premium nécessaire."}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
+        {/* 04 Réglages */}
+        <div className="mt-7">
+          <MetaLabel>04 · Réglages</MetaLabel>
+          <div className="mt-3 grid sm:grid-cols-3 gap-2.5">
+            <Stepper
+              label="CARTES À GAGNER"
+              value={winCards}
+              onChange={setWinCards}
+              min={3}
+              max={20}
+            />
+            <Stepper
+              label="TEMPS PAR TOUR"
+              value={turnSeconds}
+              onChange={setTurnSeconds}
+              min={15}
+              max={60}
+              step={5}
+              suffix="sec"
+              disabled
+              tooltip="Bientôt configurable"
+            />
+            <div
+              className="rounded-lg"
+              style={{
+                padding: "14px 16px",
+                background: "var(--creme-2)",
+                border: "1px solid var(--creme-3)",
+              }}
+            >
+              <div
+                className="font-mono"
+                style={{
+                  fontSize: 11,
+                  color: "var(--brun-mid)",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                CONTESTATIONS
+              </div>
+              <div className="flex items-center mt-2 gap-1.5">
+                <div
+                  className="flex-1 text-center font-semibold"
+                  style={{
+                    padding: "6px 0",
+                    background: "var(--brun)",
+                    color: "var(--creme)",
+                    borderRadius: 4,
+                    fontSize: 13,
+                  }}
+                >
+                  Permises
+                </div>
+                <div
+                  className="flex-1 text-center"
+                  style={{
+                    padding: "6px 0",
+                    fontSize: 13,
+                    color: "var(--brun-mid)",
+                  }}
+                >
+                  Off
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Premium gate */}
         {product !== "premium" && (
-          <Card className="p-4 border-amber-500/40 bg-amber-500/10">
-            <p className="text-sm font-medium mb-2">
+          <div
+            className="mt-6 rounded-lg"
+            style={{
+              padding: 16,
+              border: "1.5px solid var(--or)",
+              background: "rgba(212,166,86,0.08)",
+            }}
+          >
+            <div
+              className="font-display font-semibold mb-1"
+              style={{ fontSize: 16 }}
+            >
               {product === null
-                ? t("spotify.notLinked")
-                : t("spotify.premiumRequired")}
-            </p>
-            <p className="text-xs text-muted-foreground mb-3">
-              En tant qu&apos;hôte, c&apos;est toi qui lances la musique — donc tu
-              dois avoir un compte Premium, peu importe le mode.
+                ? "Connecte Spotify"
+                : "Compte Premium requis"}
+            </div>
+            <p
+              className="mb-3"
+              style={{ fontSize: 13, color: "var(--brun-2)" }}
+            >
+              En tant qu&apos;hôte, c&apos;est toi qui lances la musique — un
+              compte Spotify Premium est nécessaire, peu importe le mode.
             </p>
             <a
-              href={`/api/spotify/login?return_to=${encodeURIComponent("/parties/nouvelle")}`}
-              className="inline-flex items-center justify-center rounded-md bg-[#1DB954] px-4 py-2 text-sm font-medium text-black hover:bg-[#1ed760]"
+              href="/api/spotify/login?return_to=/parties/nouvelle"
+              className="inline-flex items-center justify-center rounded-md font-semibold"
+              style={{
+                background: "var(--green-spotify)",
+                color: "var(--nuit)",
+                padding: "10px 18px",
+                fontSize: 13,
+              }}
             >
-              {t("spotify.connect")}
+              Se connecter avec Spotify
             </a>
-          </Card>
+          </div>
         )}
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p className="mt-4 text-sm" style={{ color: "var(--oxblood)" }}>
+            {error}
+          </p>
+        )}
 
-        <Button type="submit" disabled={!canSubmit} className="w-full sm:w-auto">
-          {submitting ? t("create.submitting") : t("create.submit")}
-        </Button>
+        <div className="flex-1 min-h-8" />
+
+        <div className="mt-8 flex items-center gap-4 flex-wrap">
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="flex-1 flex items-center justify-center gap-2 font-semibold rounded-md disabled:opacity-50"
+            style={{
+              background: "var(--oxblood)",
+              color: "var(--creme)",
+              padding: "18px 22px",
+              fontSize: 17,
+            }}
+          >
+            <span>▶</span>
+            {submitting ? "Création…" : "Créer la partie"}
+          </button>
+          <div
+            className="flex items-center gap-2"
+            style={{ fontSize: 12, color: "var(--brun-mid)" }}
+          >
+            <SpotifyBadge />
+            <span>
+              {product === "premium"
+                ? "connecté · Premium ✓"
+                : product === "free"
+                  ? "connecté · gratuit ⚠"
+                  : "non lié"}
+            </span>
+          </div>
+        </div>
       </form>
     </main>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  suffix,
+  disabled,
+  tooltip,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  suffix?: string;
+  disabled?: boolean;
+  tooltip?: string;
+}) {
+  return (
+    <div
+      className="rounded-lg relative"
+      style={{
+        padding: "14px 16px",
+        background: "var(--creme-2)",
+        border: "1px solid var(--creme-3)",
+        opacity: disabled ? 0.55 : 1,
+      }}
+      title={tooltip}
+    >
+      <div
+        className="font-mono"
+        style={{
+          fontSize: 11,
+          color: "var(--brun-mid)",
+          letterSpacing: "0.1em",
+        }}
+      >
+        {label}
+      </div>
+      <div className="flex items-center justify-between mt-2">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - step))}
+          disabled={disabled || value <= min}
+          className="rounded-md disabled:opacity-30"
+          style={{
+            width: 28,
+            height: 28,
+            border: "1px solid var(--brun)",
+            background: "transparent",
+            fontSize: 16,
+          }}
+        >
+          −
+        </button>
+        <div
+          className="font-display font-bold"
+          style={{ fontSize: 28, letterSpacing: "-0.02em" }}
+        >
+          {value}
+          {suffix && (
+            <span
+              className="font-medium ml-0.5"
+              style={{ fontSize: 14, color: "var(--brun-mid)" }}
+            >
+              {suffix}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + step))}
+          disabled={disabled || value >= max}
+          className="rounded-md disabled:opacity-30"
+          style={{
+            width: 28,
+            height: 28,
+            border: "1px solid var(--brun)",
+            background: "transparent",
+            fontSize: 16,
+          }}
+        >
+          +
+        </button>
+      </div>
+    </div>
   );
 }

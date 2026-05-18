@@ -1,11 +1,18 @@
 export const fr = {
+  "landing.metaLabel": "Vinyl club · Mtl · Depuis 2026",
   "landing.tagline": "Devine l'année. Construis ta timeline. Gagne la partie.",
   "landing.description":
-    "Tabarname est un jeu musical multijoueur en ligne propulsé par Spotify. Inspiré de Hitster, avec une touche bien québécoise.",
+    "Un jeu musical multijoueur propulsé par Spotify, fait au Québec pour les soirées qui finissent tard. Écoute un extrait, devine sa date de sortie, glisse-la dans ta timeline.",
   "landing.cta.create": "Créer une partie",
   "landing.cta.join": "Rejoindre une partie",
+  "landing.cta.joinShort": "Rejoindre",
+  "landing.spotifyLine": "Compte Premium requis",
+  "landing.codePlaceholder": "EMB-543",
+  "landing.codeLabel": "CODE",
   "landing.premiumNote":
     "Compte Spotify Premium requis pour le mode en ligne. Mode « audio chez l'hôte » disponible pour jouer en personne avec un seul Premium.",
+  "landing.howCta": "Aucun téléchargement. Joue dans ton fureteur, sur le bord du divan ou debout au party.",
+  "landing.finalCta": "Côté A · Face party",
   "landing.howto.title": "Comment jouer",
   "landing.howto.step1.title": "Crée ou rejoins",
   "landing.howto.step1.body":
