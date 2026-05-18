@@ -1,7 +1,15 @@
-// Placeholder: service-role Supabase client for server-only authoritative mutations.
-// NEVER import from a Client Component or send to the browser.
-// To be implemented in Sprint 1.
+import { createClient } from "@supabase/supabase-js";
 
+// Server-only. Bypasses RLS — never import from a Client Component.
 export function getSupabaseService() {
-  throw new Error("Not implemented — fill in once SUPABASE_SERVICE_ROLE_KEY is configured");
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    },
+  );
 }

@@ -3,10 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS=--dns-result-order=ipv4first next dev -H 127.0.0.1",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "import-playlist": "NODE_OPTIONS=--dns-result-order=ipv4first dotenv -e .env.local -e .env -- tsx scripts/import_playlist.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
@@ -31,10 +34,13 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/spotify-web-playback-sdk": "^0.1.19",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "tsx": "^4.22.1",
+    "typescript": "^5",
+    "vitest": "^4.1.6"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
