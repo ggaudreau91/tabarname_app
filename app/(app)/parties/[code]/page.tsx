@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { subscribeToRoom } from "@/lib/realtime/room";
 import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
+import { SpotifyStatusBar } from "@/components/spotify/SpotifyStatusBar";
 import { RoomLobby } from "@/components/lobby/RoomLobby";
 import type { LobbyPlayer } from "@/components/lobby/PlayerList";
 import { GameTopBar } from "@/components/game/GameTopBar";
@@ -279,19 +280,43 @@ export default function RoomPage({
 
   // Lecture Spotify automatique
   useEffect(() => {
-    if (!turn || !turn.spotify_uri) return;
-    if (turn.phase !== "turn_playing" && turn.phase !== "guess_window") return;
-    if (!isReady || !deviceId) return;
-    if (playedUriRef.current === turn.spotify_uri) return;
-
+    if (!turn) {
+      console.log("[playback] skip: no turn");
+      return;
+    }
+    if (!turn.spotify_uri) {
+      console.log("[playback] skip: turn has no spotify_uri (vue turns_public à jour?)");
+      return;
+    }
+    if (turn.phase !== "turn_playing" && turn.phase !== "guess_window") {
+      console.log("[playback] skip: phase is", turn.phase);
+      return;
+    }
+    if (playedUriRef.current === turn.spotify_uri) {
+      console.log("[playback] skip: already played this uri");
+      return;
+    }
     if (room?.mode === "host_audio" && selfId !== room.host_player_id) {
+      console.log("[playback] skip: host_audio mode, I'm not the host");
       playedUriRef.current = turn.spotify_uri;
       return;
     }
-    if (product !== "premium") return;
-
+    if (product !== "premium") {
+      console.log("[playback] skip: product is", product);
+      return;
+    }
+    if (!isReady || !deviceId) {
+      console.log("[playback] skip: SDK not ready yet", { isReady, deviceId });
+      return;
+    }
+    console.log("[playback] attempt", turn.spotify_uri);
     playedUriRef.current = turn.spotify_uri;
-    playUri(turn.spotify_uri).catch((e) => setError(String(e)));
+    playUri(turn.spotify_uri).catch((e) => {
+      console.error("[playback] error", e);
+      setError(String(e));
+      // Reset pour retry au prochain re-render
+      playedUriRef.current = null;
+    });
   }, [turn, isReady, deviceId, product, room, selfId, playUri]);
 
   const isHost = !!(room && selfId && room.host_player_id === selfId);
@@ -728,6 +753,12 @@ export default function RoomPage({
         turnNumber={turn?.turn_number ?? 0}
         leaderLabel={leaderLabel}
         leaderCards={leader?.count}
+      />
+      <SpotifyStatusBar
+        needsToPlay={
+          room.mode === "online_premium" ||
+          (room.mode === "host_audio" && selfId === room.host_player_id)
+        }
       />
 
       <div className="flex-1 px-6 sm:px-10 py-8 max-w-7xl mx-auto w-full flex flex-col gap-7">

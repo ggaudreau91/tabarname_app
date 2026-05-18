@@ -81,16 +81,32 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       });
 
       player.addListener("ready", ({ device_id }) => {
+        console.log("[spotify-sdk] ready", { device_id });
         setDeviceId(device_id);
         setIsReady(true);
       });
 
-      player.addListener("not_ready", () => setIsReady(false));
+      player.addListener("not_ready", ({ device_id }) => {
+        console.warn("[spotify-sdk] not_ready", { device_id });
+        setIsReady(false);
+      });
 
-      player.addListener("initialization_error", ({ message }) => setError(message));
-      player.addListener("authentication_error", ({ message }) => setError(message));
-      player.addListener("account_error", ({ message }) => setError(message));
-      player.addListener("playback_error", ({ message }) => setError(message));
+      player.addListener("initialization_error", ({ message }) => {
+        console.error("[spotify-sdk] init_error", message);
+        setError(`Init: ${message}`);
+      });
+      player.addListener("authentication_error", ({ message }) => {
+        console.error("[spotify-sdk] auth_error", message);
+        setError(`Auth: ${message}`);
+      });
+      player.addListener("account_error", ({ message }) => {
+        console.error("[spotify-sdk] account_error", message);
+        setError(`Compte: ${message} (Premium requis)`);
+      });
+      player.addListener("playback_error", ({ message }) => {
+        console.error("[spotify-sdk] playback_error", message);
+        setError(`Lecture: ${message}`);
+      });
 
       const ok = await player.connect();
       if (!ok) setError("Échec de la connexion au Web Playback SDK");
@@ -110,6 +126,30 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
     const tokenData = await fetchAccessToken();
     if (!tokenData) throw new Error("pas de token Spotify");
 
+    console.log("[spotify-sdk] playUri", { uri, deviceId });
+
+    // 1. Transférer la lecture vers notre device (sinon Spotify peut renvoyer
+    //    NO_ACTIVE_DEVICE quand l'utilisateur n'a jamais lancé Spotify).
+    const transferRes = await fetch("https://api.spotify.com/v1/me/player", {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${tokenData.access_token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ device_ids: [deviceId], play: false }),
+    });
+    // 204 OK, 202 Accepted, 404 (no active session) sont tous "acceptables"
+    if (!transferRes.ok && transferRes.status !== 404) {
+      console.warn(
+        "[spotify-sdk] transfer status",
+        transferRes.status,
+        await transferRes.text(),
+      );
+    }
+
+    // Petit délai pour laisser Spotify reconnaître le device avant le play
+    await new Promise((r) => setTimeout(r, 250));
+
     const res = await fetch(
       `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(deviceId)}`,
       {
@@ -123,8 +163,10 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
     );
     if (!res.ok && res.status !== 202 && res.status !== 204) {
       const txt = await res.text();
+      console.error("[spotify-sdk] playUri failed", res.status, txt);
       throw new Error(`playUri ${res.status}: ${txt}`);
     }
+    console.log("[spotify-sdk] playUri OK", res.status);
   }, [deviceId]);
 
   const pause = useCallback(async () => {
