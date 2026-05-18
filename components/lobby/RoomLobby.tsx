@@ -14,6 +14,7 @@ type Props = {
   playlistTrackCount?: number;
   mode: "online_premium" | "host_audio";
   winConditionCards: number;
+  challengesEnabled: boolean;
   maxPlayers?: number;
   isHost: boolean;
   canStart: boolean;
@@ -74,6 +75,7 @@ export function RoomLobby({
   playlistTrackCount,
   mode,
   winConditionCards,
+  challengesEnabled,
   maxPlayers = FILL_TO,
   isHost,
   canStart,
@@ -496,12 +498,12 @@ export function RoomLobby({
             </div>
           </div>
           <div>
-            <MetaLabel>Tour de</MetaLabel>
+            <MetaLabel>Contestations</MetaLabel>
             <div
               className="font-display font-semibold mt-0.5"
               style={{ fontSize: 18 }}
             >
-              30 sec
+              {challengesEnabled ? "Permises" : "Off"}
             </div>
           </div>
         </div>

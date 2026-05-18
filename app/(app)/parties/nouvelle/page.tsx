@@ -51,6 +51,7 @@ export default function NewPartyPage() {
   const [mode, setMode] = useState<"online_premium" | "host_audio">("online_premium");
   const [winCards, setWinCards] = useState(10);
   const [turnSeconds, setTurnSeconds] = useState(30);
+  const [challengesEnabled, setChallengesEnabled] = useState(true);
   const [pseudo, setPseudo] = useState("");
   const [selfId, setSelfId] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -102,6 +103,7 @@ export default function NewPartyPage() {
           playlist_id: playlistId,
           mode,
           win_condition_cards: winCards,
+          challenges_enabled: challengesEnabled,
           pseudo: pseudo.trim(),
           has_premium: product === "premium",
         }),
@@ -557,29 +559,36 @@ export default function NewPartyPage() {
               >
                 CONTESTATIONS
               </div>
-              <div className="flex items-center mt-2 gap-1.5">
-                <div
-                  className="flex-1 text-center font-semibold"
+              <div
+                className="flex items-center mt-2 gap-1.5 rounded p-0.5"
+                style={{ background: "var(--creme-3)" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setChallengesEnabled(true)}
+                  className="flex-1 text-center font-semibold rounded transition"
                   style={{
                     padding: "6px 0",
-                    background: "var(--brun)",
-                    color: "var(--creme)",
-                    borderRadius: 4,
+                    background: challengesEnabled ? "var(--brun)" : "transparent",
+                    color: challengesEnabled ? "var(--creme)" : "var(--brun-mid)",
                     fontSize: 13,
                   }}
                 >
                   Permises
-                </div>
-                <div
-                  className="flex-1 text-center"
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setChallengesEnabled(false)}
+                  className="flex-1 text-center font-semibold rounded transition"
                   style={{
                     padding: "6px 0",
+                    background: !challengesEnabled ? "var(--brun)" : "transparent",
+                    color: !challengesEnabled ? "var(--creme)" : "var(--brun-mid)",
                     fontSize: 13,
-                    color: "var(--brun-mid)",
                   }}
                 >
                   Off
-                </div>
+                </button>
               </div>
             </div>
           </div>

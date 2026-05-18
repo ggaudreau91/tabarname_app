@@ -30,6 +30,7 @@ type Room = {
   current_turn_id: string | null;
   win_condition_cards: number;
   playlist_id: string;
+  challenges_enabled: boolean;
 };
 
 type Playlist = {
@@ -88,22 +89,69 @@ export default function RoomPage({
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [publicMeta, setPublicMeta] = useState<{
+    host_pseudo: string | null;
+    players_count: number;
+  } | null>(null);
   const playedUriRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSelfId(data.user?.id ?? null));
   }, [supabase]);
 
+  // On passe d'abord par l'API service-role (indépendante des policies RLS)
+  // pour les infos de base, ce qui permet aux non-membres de voir l'écran
+  // d'invitation sans rester bloqués sur "Chargement…". Une fois membre,
+  // les realtime subscriptions + queries Supabase prennent le relais.
+  // On passe d'abord par l'API service-role (indépendante des policies RLS)
+  // pour les infos de base, ce qui permet aux non-membres de voir l'écran
+  // d'invitation sans rester bloqués sur "Chargement…". Une fois membre,
+  // les queries Supabase normales fournissent l'état complet.
   const fetchRoom = useCallback(async () => {
-    const { data } = await supabase
+    const res = await fetch(`/api/parties/${upperCode}`);
+    if (res.status === 404) {
+      setRoom(null);
+      setPublicMeta(null);
+      return null;
+    }
+    if (!res.ok) {
+      setRoom(null);
+      setPublicMeta(null);
+      return null;
+    }
+    const data = await res.json();
+    setPublicMeta({
+      host_pseudo: data.host_pseudo ?? null,
+      players_count: data.players_count ?? 0,
+    });
+    // Enrichir avec les colonnes RLS-gated quand on est membre
+    const { data: full } = await supabase
       .from("rooms")
       .select(
-        "id, code, host_player_id, status, mode, current_turn_id, win_condition_cards, playlist_id",
+        "id, code, host_player_id, status, mode, current_turn_id, win_condition_cards, playlist_id, challenges_enabled",
       )
       .eq("code", upperCode)
       .maybeSingle<Room>();
-    setRoom(data);
-    return data;
+    if (full) {
+      setRoom(full);
+      return full;
+    }
+    // Non-membre: on construit un Room partiel pour permettre l'affichage
+    // de l'écran d'invitation. Le RLS empêche les autres queries; le user
+    // doit cliquer "Rejoindre" pour avancer.
+    const partial: Room = {
+      id: data.id ?? "",
+      code: data.code,
+      host_player_id: "",
+      status: data.status,
+      mode: data.mode,
+      current_turn_id: null,
+      win_condition_cards: data.win_condition_cards,
+      playlist_id: data.playlist_id,
+      challenges_enabled: data.challenges_enabled ?? true,
+    };
+    setRoom(partial);
+    return partial;
   }, [supabase, upperCode]);
 
   const fetchPlaylist = useCallback(
@@ -388,9 +436,14 @@ export default function RoomPage({
     setTimeout(() => setCopied(null), 2000);
   }
 
-  // Auto-resolve quand challenge expire
+  // Auto-resolve quand challenge expire — ou immédiatement si la salle
+  // a désactivé les contestations (la fenêtre n'a pas de raison d'attendre).
   useEffect(() => {
     if (!turn || turn.phase !== "challenge_window") return;
+    if (room && !room.challenges_enabled) {
+      const id = setTimeout(() => resolveAndAdvance(), 200);
+      return () => clearTimeout(id);
+    }
     const startedAt = new Date(turn.phase_changed_at).getTime();
     const elapsed = (Date.now() - startedAt) / 1000;
     const remaining = Math.max(0, CHALLENGE_WINDOW_SECONDS - elapsed);
@@ -399,7 +452,7 @@ export default function RoomPage({
     }, remaining * 1000 + 200);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [turn?.id, turn?.phase]);
+  }, [turn?.id, turn?.phase, room?.challenges_enabled]);
 
   // ----- RENDERS -----
 
@@ -506,13 +559,31 @@ export default function RoomPage({
           >
             {upperCode.slice(0, 3)}·{upperCode.slice(3)}
           </div>
-          {players.length > 0 && (
-            <p style={{ color: "var(--brun-mid)" }}>
-              {players.length} joueur{players.length > 1 ? "s" : ""} déjà{" "}
-              {players.length > 1 ? "présents" : "présent"}. Choisis un pseudo
-              pour rejoindre.
-            </p>
-          )}
+          {(() => {
+            const count = publicMeta?.players_count ?? players.length;
+            if (count === 0) {
+              return (
+                <p style={{ color: "var(--brun-mid)" }}>
+                  Choisis un pseudo pour rejoindre la salle.
+                </p>
+              );
+            }
+            return (
+              <p style={{ color: "var(--brun-mid)" }}>
+                {count} joueur{count > 1 ? "s" : ""} déjà{" "}
+                {count > 1 ? "présents" : "présent"}
+                {publicMeta?.host_pseudo && (
+                  <>
+                    {" "}— hôte:{" "}
+                    <span style={{ fontWeight: 600, color: "var(--brun)" }}>
+                      {publicMeta.host_pseudo}
+                    </span>
+                  </>
+                )}
+                . Choisis un pseudo pour rejoindre.
+              </p>
+            );
+          })()}
           <button
             onClick={() => router.push(`/parties/rejoindre?code=${upperCode}`)}
             className="inline-flex items-center gap-2 font-semibold rounded-md"
@@ -625,6 +696,7 @@ export default function RoomPage({
         playlistTrackCount={playlist?.track_count}
         mode={room.mode}
         winConditionCards={room.win_condition_cards}
+        challengesEnabled={room.challenges_enabled}
         isHost={isHost}
         canStart={players.length >= 2}
         starting={submittingAction === "start"}
@@ -771,7 +843,12 @@ export default function RoomPage({
       <OthersStrip
         players={stripPlayers}
         totalToWin={room.win_condition_cards}
-        canChallenge={!!turn && turn.phase === "challenge_window" && !isActive}
+        canChallenge={
+          !!turn &&
+          turn.phase === "challenge_window" &&
+          !isActive &&
+          room.challenges_enabled
+        }
         hasChallenged={hasChallenged}
         onChallenge={() => setChallengeMode(true)}
       />
@@ -782,6 +859,8 @@ export default function RoomPage({
           year={turn.effective_year}
           title={turn.title}
           artists={turn.artists}
+          coverUrl={turn.cover_url}
+          spotifyUri={turn.spotify_uri}
           outcome={turn.outcome ?? "all_wrong"}
           winnerLabel={
             turn.outcome === "active_correct"

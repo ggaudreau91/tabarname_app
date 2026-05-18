@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { YearCard } from "@/components/brand/YearCard";
 import { Stamp, MetaLabel } from "@/components/brand/Stamp";
@@ -10,12 +11,23 @@ type Props = {
   year: number;
   title: string;
   artists: string;
+  /** URL de l'album cover (de curated_tracks.cover_url) */
+  coverUrl?: string | null;
+  /** Spotify URI au format `spotify:track:<id>` — converti en lien open.spotify.com */
+  spotifyUri?: string | null;
   outcome: TurnOutcome;
   winnerLabel: string | null;
   isYouWinner: boolean;
   canAdvance: boolean;
   onAdvance: () => void;
 };
+
+function spotifyOpenUrl(uri: string | null | undefined): string | null {
+  if (!uri) return null;
+  const match = uri.match(/^spotify:track:([A-Za-z0-9]+)/);
+  if (!match) return null;
+  return `https://open.spotify.com/track/${match[1]}`;
+}
 
 // Overlay reveal: vinyles tournants en arrière, confettis, gros titre Fraunces,
 // flip card (dos → recto avec année oxblood géante + métadonnées + badge or).
@@ -24,12 +36,15 @@ export function RevealOverlay({
   year,
   title,
   artists,
+  coverUrl,
+  spotifyUri,
   outcome,
   winnerLabel,
   isYouWinner,
   canAdvance,
   onAdvance,
 }: Props) {
+  const spotifyHref = spotifyOpenUrl(spotifyUri);
   const headline =
     outcome === "active_correct"
       ? isYouWinner
@@ -311,8 +326,74 @@ export function RevealOverlay({
           </div>
         </div>
 
+        {/* Spotify info bar */}
+        <div
+          className="mt-12 flex items-center gap-4 rounded-lg w-full max-w-2xl"
+          style={{
+            padding: "14px 22px",
+            background: "rgba(250,246,240,0.06)",
+            border: "1px solid rgba(250,246,240,0.12)",
+          }}
+        >
+          {coverUrl ? (
+            <Image
+              src={coverUrl}
+              alt={`Pochette de ${title}`}
+              width={44}
+              height={44}
+              className="rounded shrink-0"
+              style={{ objectFit: "cover" }}
+              unoptimized
+            />
+          ) : (
+            <div className="shrink-0" style={{ animation: "spin 6s linear infinite" }}>
+              <VinylDisc size={44} labelColor="var(--oxblood)" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-semibold truncate"
+              style={{ fontSize: 15 }}
+            >
+              <span
+                className="italic font-display"
+                style={{ fontWeight: 600 }}
+              >
+                {title}
+              </span>{" "}
+              · {artists}
+            </div>
+            <div
+              className="truncate"
+              style={{
+                fontSize: 12,
+                color: "rgba(250,246,240,0.55)",
+                marginTop: 2,
+              }}
+            >
+              QC · {year}
+              {spotifyHref && (
+                <>
+                  {" · "}
+                  <a
+                    href={spotifyHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: "var(--green-spotify)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    ▶ Ouvrir sur Spotify
+                  </a>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Actions */}
-        <div className="mt-12 flex items-center gap-3">
+        <div className="mt-9 flex items-center gap-3">
           {canAdvance && (
             <button
               onClick={onAdvance}

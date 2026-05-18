@@ -8,6 +8,7 @@ const Body = z.object({
   playlist_id: z.string().uuid(),
   mode: z.enum(["online_premium", "host_audio"]).default("online_premium"),
   win_condition_cards: z.number().int().min(3).max(20).default(10),
+  challenges_enabled: z.boolean().default(true),
   pseudo: z.string().min(1).max(40),
   has_premium: z.boolean().default(false),
 });
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
     p_playlist_id: body.playlist_id,
     p_mode: body.mode,
     p_win_cards: body.win_condition_cards,
+    p_challenges_enabled: body.challenges_enabled,
   });
   if (createErr) return rpcError(createErr);
 

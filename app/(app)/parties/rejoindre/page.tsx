@@ -130,7 +130,10 @@ export default function JoinPartyPage() {
     })();
   }, [supabase, selfId]);
 
-  // Recherche live de la salle quand le code est complet
+  // Recherche live via l'endpoint /api/parties/[code] (service role côté
+  // serveur, indépendant des policies RLS). Le `code` est le secret
+  // d'invitation, donc exposer existence + host_pseudo + nombre de joueurs
+  // est OK.
   useEffect(() => {
     const code = chars.join("");
     if (code.length !== CODE_LENGTH) {
@@ -142,41 +145,32 @@ export default function JoinPartyPage() {
       if (!cancelled) setSearching(true);
     });
     (async () => {
-      const { data: room } = await supabase
-        .from("rooms")
-        .select("code, host_player_id, status")
-        .eq("code", code)
-        .maybeSingle<{ code: string; host_player_id: string; status: string }>();
-      if (cancelled) return;
-      if (!room) {
-        setFoundRoom(null);
-        setSearching(false);
-        return;
+      try {
+        const res = await fetch(`/api/parties/${code}`);
+        if (cancelled) return;
+        if (res.status === 404) {
+          setFoundRoom(null);
+          setSearching(false);
+          return;
+        }
+        if (!res.ok) throw new Error(`lookup_${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        setFoundRoom({
+          code: data.code,
+          host: data.host_pseudo ?? null,
+          players: data.players_count ?? 0,
+        });
+      } catch {
+        if (!cancelled) setFoundRoom(null);
+      } finally {
+        if (!cancelled) setSearching(false);
       }
-      const { data: hostMembership } = await supabase
-        .from("room_players")
-        .select("pseudo, room:rooms!inner(code)")
-        .eq("player_id", room.host_player_id)
-        .eq("room.code", code)
-        .maybeSingle();
-      const hostPseudo = (hostMembership as unknown as { pseudo: string } | null)
-        ?.pseudo;
-      const { count } = await supabase
-        .from("room_players")
-        .select("player_id", { count: "exact", head: true })
-        .eq("room_id", room.code);
-      if (cancelled) return;
-      setFoundRoom({
-        code: room.code,
-        host: hostPseudo ?? null,
-        players: count ?? 0,
-      });
-      setSearching(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [chars, supabase]);
+  }, [chars]);
 
   function setChar(i: number, raw: string) {
     const upper = raw.toUpperCase();

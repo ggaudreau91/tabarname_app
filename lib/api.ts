@@ -61,6 +61,7 @@ const PG_ERROR_MAP: Record<string, { status: number; error: string }> = {
   P0010: { status: 409, error: "no_guess_recorded" },
   P0011: { status: 409, error: "previous_turn_not_resolved" },
   P0012: { status: 409, error: "no_connected_players" },
+  P0013: { status: 409, error: "challenges_disabled" },
 };
 
 export function rpcError(rpcError: { code?: string; message: string }): NextResponse {
