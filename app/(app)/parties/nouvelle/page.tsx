@@ -48,11 +48,14 @@ export default function NewPartyPage() {
   const { product } = useSpotifyPlayer();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"online_premium" | "host_audio">("online_premium");
+  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">(
+    "online_premium",
+  );
   const [winCards, setWinCards] = useState(10);
   const [turnSeconds, setTurnSeconds] = useState(30);
   const [challengesEnabled, setChallengesEnabled] = useState(true);
   const [pseudo, setPseudo] = useState("");
+  const [localPlayers, setLocalPlayers] = useState<string[]>(["", ""]);
   const [selfId, setSelfId] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,11 +87,16 @@ export default function NewPartyPage() {
     })();
   }, [supabase]);
 
-  const canSubmit =
-    !!playlistId &&
-    pseudo.trim().length > 0 &&
-    !submitting &&
-    product === "premium";
+  const validLocalPseudos = localPlayers
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+
+  const canSubmit = (() => {
+    if (!playlistId || submitting) return false;
+    if (product !== "premium") return false;
+    if (mode === "local_pass") return validLocalPseudos.length >= 2;
+    return pseudo.trim().length > 0;
+  })();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -96,17 +104,26 @@ export default function NewPartyPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const body =
+        mode === "local_pass"
+          ? {
+              mode,
+              playlist_id: playlistId,
+              win_condition_cards: winCards,
+              local_players: validLocalPseudos,
+            }
+          : {
+              mode,
+              playlist_id: playlistId,
+              win_condition_cards: winCards,
+              challenges_enabled: challengesEnabled,
+              pseudo: pseudo.trim(),
+              has_premium: product === "premium",
+            };
       const res = await fetch("/api/parties", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          playlist_id: playlistId,
-          mode,
-          win_condition_cards: winCards,
-          challenges_enabled: challengesEnabled,
-          pseudo: pseudo.trim(),
-          has_premium: product === "premium",
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "create_failed");
@@ -115,6 +132,22 @@ export default function NewPartyPage() {
       setError(e instanceof Error ? e.message : "erreur");
       setSubmitting(false);
     }
+  }
+
+  function updateLocalPlayer(index: number, value: string) {
+    setLocalPlayers((prev) => {
+      const next = [...prev];
+      next[index] = value.slice(0, 24);
+      return next;
+    });
+  }
+  function addLocalPlayer() {
+    setLocalPlayers((prev) => (prev.length < 8 ? [...prev, ""] : prev));
+  }
+  function removeLocalPlayer(i: number) {
+    setLocalPlayers((prev) =>
+      prev.length > 2 ? prev.filter((_, idx) => idx !== i) : prev,
+    );
   }
 
   return (
@@ -300,58 +333,156 @@ export default function NewPartyPage() {
         className="flex flex-col overflow-auto"
         style={{ padding: "40px 32px 32px" }}
       >
-        {/* 01 Pseudo */}
-        <div>
-          <div className="flex items-baseline justify-between mb-2.5">
-            <MetaLabel>01 · Ton pseudo</MetaLabel>
-            <div
-              className="italic"
-              style={{ fontSize: 11, color: "var(--brun-mid)" }}
-            >
-              16 caractères max
+        {/* 01 Pseudo / Joueurs locaux */}
+        {mode === "local_pass" ? (
+          <div>
+            <div className="flex items-baseline justify-between mb-2.5">
+              <MetaLabel>
+                01 · Joueurs ({validLocalPseudos.length}/{localPlayers.length})
+              </MetaLabel>
+              <div
+                className="italic"
+                style={{ fontSize: 11, color: "var(--brun-mid)" }}
+              >
+                2 à 8 joueurs · vous passerez l&apos;appareil
+              </div>
+            </div>
+            <div className="space-y-2">
+              {localPlayers.map((p, i) => (
+                <div key={i} className="flex gap-2.5 items-stretch">
+                  <div
+                    className="flex items-center justify-center font-mono shrink-0"
+                    style={{
+                      width: 36,
+                      height: 56,
+                      color: "var(--brun-mid)",
+                      fontSize: 12,
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <PlayerAvatar
+                    name={p || "?"}
+                    color={
+                      [
+                        "var(--oxblood)",
+                        "var(--or)",
+                        "var(--green-pret)",
+                        "var(--brun)",
+                        "var(--oxblood-deep)",
+                        "var(--brun-mid)",
+                        "var(--or-deep)",
+                        "var(--brun-2)",
+                      ][i % 8]
+                    }
+                    size={56}
+                  />
+                  <input
+                    value={p}
+                    onChange={(e) => updateLocalPlayer(i, e.target.value)}
+                    placeholder={`Joueur ${i + 1}`}
+                    className="flex-1 font-display font-semibold outline-none"
+                    style={{
+                      padding: "14px 18px",
+                      background: "var(--creme)",
+                      border: "1.5px solid var(--brun)",
+                      borderRadius: 8,
+                      fontSize: 22,
+                      color: "var(--brun)",
+                      letterSpacing: "-0.01em",
+                    }}
+                  />
+                  {localPlayers.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeLocalPlayer(i)}
+                      className="font-mono"
+                      style={{
+                        padding: "0 14px",
+                        background: "transparent",
+                        border: "1.5px solid var(--creme-3)",
+                        borderRadius: 8,
+                        fontSize: 14,
+                        color: "var(--brun-mid)",
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+              ))}
+              {localPlayers.length < 8 && (
+                <button
+                  type="button"
+                  onClick={addLocalPlayer}
+                  className="w-full font-mono font-semibold"
+                  style={{
+                    padding: "14px",
+                    background: "var(--creme-2)",
+                    border: "1.5px dashed var(--creme-3)",
+                    borderRadius: 8,
+                    fontSize: 13,
+                    color: "var(--brun-mid)",
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  + AJOUTER UN JOUEUR
+                </button>
+              )}
             </div>
           </div>
-          <div className="flex gap-2.5 items-stretch">
-            <PlayerAvatar
-              name={pseudo || "Toi"}
-              color={
-                selfId ? colorForPlayer(selfId) : "var(--oxblood)"
-              }
-              size={56}
-            />
-            <input
-              value={pseudo}
-              onChange={(e) => setPseudo(e.target.value.slice(0, 16))}
-              placeholder="ex. PtitGars"
-              className="flex-1 font-display font-semibold outline-none"
-              style={{
-                padding: "14px 18px",
-                background: "var(--creme)",
-                border: "1.5px solid var(--brun)",
-                borderRadius: 8,
-                fontSize: 24,
-                color: "var(--brun)",
-                letterSpacing: "-0.01em",
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setPseudo(randomPseudo())}
-              className="font-mono font-semibold"
-              style={{
-                padding: "0 18px",
-                background: "var(--creme-2)",
-                border: "1.5px solid var(--creme-3)",
-                borderRadius: 8,
-                fontSize: 12,
-                color: "var(--brun)",
-                letterSpacing: "0.1em",
-              }}
-            >
-              ↻ RANDOM
-            </button>
+        ) : (
+          <div>
+            <div className="flex items-baseline justify-between mb-2.5">
+              <MetaLabel>01 · Ton pseudo</MetaLabel>
+              <div
+                className="italic"
+                style={{ fontSize: 11, color: "var(--brun-mid)" }}
+              >
+                16 caractères max
+              </div>
+            </div>
+            <div className="flex gap-2.5 items-stretch">
+              <PlayerAvatar
+                name={pseudo || "Toi"}
+                color={selfId ? colorForPlayer(selfId) : "var(--oxblood)"}
+                size={56}
+              />
+              <input
+                value={pseudo}
+                onChange={(e) => setPseudo(e.target.value.slice(0, 16))}
+                placeholder="ex. PtitGars"
+                className="flex-1 font-display font-semibold outline-none"
+                style={{
+                  padding: "14px 18px",
+                  background: "var(--creme)",
+                  border: "1.5px solid var(--brun)",
+                  borderRadius: 8,
+                  fontSize: 24,
+                  color: "var(--brun)",
+                  letterSpacing: "-0.01em",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setPseudo(randomPseudo())}
+                className="font-mono font-semibold"
+                style={{
+                  padding: "0 18px",
+                  background: "var(--creme-2)",
+                  border: "1.5px solid var(--creme-3)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "var(--brun)",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                ↻ RANDOM
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* 02 Playlist */}
         <div className="mt-7">
@@ -452,10 +583,33 @@ export default function NewPartyPage() {
         {/* 03 Mode */}
         <div className="mt-7">
           <MetaLabel>03 · Mode de jeu</MetaLabel>
-          <div className="mt-3 grid sm:grid-cols-2 gap-2.5">
-            {(["online_premium", "host_audio"] as const).map((m) => {
+          <div className="mt-3 grid sm:grid-cols-3 gap-2.5">
+            {(
+              [
+                {
+                  m: "online_premium" as const,
+                  icon: "🌐",
+                  title: "En ligne",
+                  body:
+                    "Chacun joue sur son appareil. Chaque joueur a besoin de Premium.",
+                },
+                {
+                  m: "host_audio" as const,
+                  icon: "🔊",
+                  title: "Audio chez l'hôte",
+                  body:
+                    "Plusieurs appareils, audio sur celui de l'hôte. Un Premium suffit.",
+                },
+                {
+                  m: "local_pass" as const,
+                  icon: "🪑",
+                  title: "Autour d'une table",
+                  body:
+                    "Un seul appareil qu'on se passe. Idéal pour les apéros, party de cuisine.",
+                },
+              ]
+            ).map(({ m, icon, title, body }) => {
               const selected = m === mode;
-              const isOnline = m === "online_premium";
               return (
                 <button
                   key={m}
@@ -494,12 +648,12 @@ export default function NewPartyPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span style={{ fontSize: 18 }}>{isOnline ? "🌐" : "🔊"}</span>
+                    <span style={{ fontSize: 18 }}>{icon}</span>
                     <div
                       className="font-display font-semibold"
                       style={{ fontSize: 18, letterSpacing: "-0.01em" }}
                     >
-                      {isOnline ? "En ligne" : "Audio chez l'hôte"}
+                      {title}
                     </div>
                   </div>
                   <div
@@ -509,9 +663,7 @@ export default function NewPartyPage() {
                       lineHeight: 1.5,
                     }}
                   >
-                    {isOnline
-                      ? "Chacun joue chez soi. Chaque joueur a besoin d'un compte Spotify Premium."
-                      : "En personne autour d'un speaker. Un seul Premium nécessaire."}
+                    {body}
                   </div>
                 </button>
               );

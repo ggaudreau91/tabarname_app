@@ -14,6 +14,7 @@ import { AudioPanel } from "@/components/game/AudioPanel";
 import { TimelineRail } from "@/components/game/TimelineRail";
 import { OthersStrip } from "@/components/game/OthersStrip";
 import { RevealOverlay } from "@/components/game/RevealOverlay";
+import { PassDeviceOverlay } from "@/components/game/PassDeviceOverlay";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { MetaLabel } from "@/components/brand/Stamp";
 import { YearCard } from "@/components/brand/YearCard";
@@ -27,7 +28,7 @@ type Room = {
   code: string;
   host_player_id: string;
   status: "lobby" | "in_progress" | "finished" | "abandoned";
-  mode: "online_premium" | "host_audio";
+  mode: "online_premium" | "host_audio" | "local_pass";
   current_turn_id: string | null;
   win_condition_cards: number;
   playlist_id: string;
@@ -94,11 +95,36 @@ export default function RoomPage({
     host_pseudo: string | null;
     players_count: number;
   } | null>(null);
+  const [ownedPlayerIds, setOwnedPlayerIds] = useState<string[]>([]);
+  const [passReady, setPassReady] = useState(false);
   const playedUriRef = useRef<string | null>(null);
+  const lastSeenActiveRef = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSelfId(data.user?.id ?? null));
   }, [supabase]);
+
+  // Liste des joueurs virtuels possédés par l'auth user (1 en online, N en local).
+  const fetchOwned = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/parties/${upperCode}/me`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setOwnedPlayerIds(data.owned_player_ids ?? []);
+    } catch {
+      // ignore
+    }
+  }, [upperCode]);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) void fetchOwned();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchOwned]);
 
   // On passe d'abord par l'API service-role (indépendante des policies RLS)
   // pour les infos de base, ce qui permet aux non-membres de voir l'écran
@@ -296,7 +322,11 @@ export default function RoomPage({
       console.log("[playback] skip: already played this uri");
       return;
     }
-    if (room?.mode === "host_audio" && selfId !== room.host_player_id) {
+    if (
+      room?.mode === "host_audio" &&
+      selfId !== room.host_player_id &&
+      !ownedPlayerIds.includes(room.host_player_id)
+    ) {
       console.log("[playback] skip: host_audio mode, I'm not the host");
       playedUriRef.current = turn.spotify_uri;
       return;
@@ -317,21 +347,57 @@ export default function RoomPage({
       // Reset pour retry au prochain re-render
       playedUriRef.current = null;
     });
-  }, [turn, isReady, deviceId, product, room, selfId, playUri]);
+  }, [turn, isReady, deviceId, product, room, selfId, playUri, ownedPlayerIds]);
 
-  const isHost = !!(room && selfId && room.host_player_id === selfId);
+  const isLocalMode = room?.mode === "local_pass";
+  const isHost =
+    !!room &&
+    (room.host_player_id === selfId || ownedPlayerIds.includes(room.host_player_id));
   const activePlayer = useMemo(
     () => players.find((p) => p.player_id === turn?.active_player_id) ?? null,
     [players, turn],
   );
-  const isActive = !!(turn && selfId && turn.active_player_id === selfId);
+  // En local, le joueur "actif" est toujours possédé par l'auth user — c'est
+  // notre device. On vérifie l'appartenance via ownedPlayerIds.
+  const isActive =
+    !!turn &&
+    (turn.active_player_id === selfId ||
+      ownedPlayerIds.includes(turn.active_player_id));
 
+  // En mode local, on présente un overlay "Passe l'appareil à X" à chaque
+  // changement d'actif, pour éviter qu'on voie la timeline du suivant.
+  useEffect(() => {
+    let cancelled = false;
+    if (!turn || !isLocalMode) {
+      queueMicrotask(() => {
+        if (!cancelled) setPassReady(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    if (lastSeenActiveRef.current === turn.active_player_id) return;
+    lastSeenActiveRef.current = turn.active_player_id;
+    const next = turn.phase !== "turn_playing";
+    queueMicrotask(() => {
+      if (!cancelled) setPassReady(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [turn, isLocalMode]);
+
+  // En local: la "timeline du joueur courant" est celle du joueur virtuel actif.
+  // En online: c'est celle de l'auth user.
+  const ownerForTimeline = isLocalMode
+    ? turn?.active_player_id ?? null
+    : selfId;
   const ownTimeline: TimelineCard[] = useMemo(() => {
-    if (!selfId) return [];
+    if (!ownerForTimeline) return [];
     return timelineRows
-      .filter((r) => r.player_id === selfId)
+      .filter((r) => r.player_id === ownerForTimeline)
       .map((r) => ({ trackId: r.track_id, year: r.effective_year }));
-  }, [timelineRows, selfId]);
+  }, [timelineRows, ownerForTimeline]);
 
   const cardCountByPlayer = useMemo(() => {
     const m = new Map<string, number>();
@@ -388,6 +454,8 @@ export default function RoomPage({
       await callApi(`/api/parties/${upperCode}/guess`, {
         turn_id: turn.id,
         position: selectedSlot,
+        // En local, on soumet "au nom du" joueur virtuel actif.
+        as_player_id: isLocalMode ? turn.active_player_id : undefined,
       });
       setSelectedSlot(null);
     } catch (e) {
@@ -546,7 +614,10 @@ export default function RoomPage({
     );
   }
 
-  if (!selfId || !players.some((p) => p.player_id === selfId)) {
+  const isMember =
+    !!selfId &&
+    (players.some((p) => p.player_id === selfId) || ownedPlayerIds.length > 0);
+  if (!isMember) {
     return (
       <main
         className="min-h-screen flex flex-col items-center justify-center"
@@ -736,8 +807,28 @@ export default function RoomPage({
 
   // EN JEU
   const showReveal = turn && (turn.phase === "reveal" || turn.phase === "resolved");
+  const showPassOverlay =
+    isLocalMode &&
+    turn &&
+    turn.phase === "turn_playing" &&
+    !passReady &&
+    activePlayer;
+
+  if (showPassOverlay && activePlayer) {
+    const cardCount =
+      timelineRows.filter((r) => r.player_id === activePlayer.player_id).length;
+    return (
+      <PassDeviceOverlay
+        pseudo={activePlayer.pseudo}
+        playerId={activePlayer.player_id}
+        cardCount={cardCount}
+        onReady={() => setPassReady(true)}
+      />
+    );
+  }
+  const filterOutId = isLocalMode ? turn?.active_player_id : selfId;
   const stripPlayers = players
-    .filter((p) => p.player_id !== selfId)
+    .filter((p) => p.player_id !== filterOutId)
     .map((p) => ({
       player_id: p.player_id,
       pseudo: p.pseudo,

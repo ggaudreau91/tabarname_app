@@ -13,7 +13,7 @@ export type TurnPhase =
 
 export type TurnOutcome = "active_correct" | "challenger_correct" | "all_wrong";
 
-export type RoomMode = "online_premium" | "host_audio";
+export type RoomMode = "online_premium" | "host_audio" | "local_pass";
 
 // Une carte dans la timeline d'un joueur.
 export type TimelineCard = {

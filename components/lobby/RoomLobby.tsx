@@ -12,7 +12,7 @@ type Props = {
   players: LobbyPlayer[];
   playlistName?: string;
   playlistTrackCount?: number;
-  mode: "online_premium" | "host_audio";
+  mode: "online_premium" | "host_audio" | "local_pass";
   winConditionCards: number;
   challengesEnabled: boolean;
   maxPlayers?: number;
@@ -494,7 +494,11 @@ export function RoomLobby({
               className="font-display font-semibold mt-0.5"
               style={{ fontSize: 18 }}
             >
-              {mode === "online_premium" ? "En ligne" : "Audio hôte"}
+              {mode === "online_premium"
+                ? "En ligne"
+                : mode === "host_audio"
+                  ? "Audio hôte"
+                  : "Local"}
             </div>
           </div>
           <div>
