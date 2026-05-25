@@ -15,7 +15,10 @@ import {
   X,
 } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
-import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
+import {
+  useSpotifyPlayer,
+  isLikelySdkUnsupported,
+} from "@/components/spotify/SpotifyPlayerProvider";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { MetaLabel, SpotifyBadge } from "@/components/brand/Stamp";
@@ -59,9 +62,15 @@ export default function NewPartyPage() {
   const { product } = useSpotifyPlayer();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">(
     "online_premium",
   );
+  const [importInput, setImportInput] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
   const [winCards, setWinCards] = useState(10);
   const [turnSeconds, setTurnSeconds] = useState(30);
   const [challengesEnabled, setChallengesEnabled] = useState(true);
@@ -70,6 +79,16 @@ export default function NewPartyPage() {
   const [selfId, setSelfId] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Détection iOS/mobile: Web Playback SDK est cassé sur ces devices —
+    // on pré-sélectionne host_audio et on affichera un warning.
+    if (!isLikelySdkUnsupported()) return;
+    queueMicrotask(() => {
+      setIsMobile(true);
+      setMode("host_audio");
+    });
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -108,6 +127,62 @@ export default function NewPartyPage() {
     if (mode === "local_pass") return validLocalPseudos.length >= 2;
     return pseudo.trim().length > 0;
   })();
+
+  async function onImportPlaylist(e: React.FormEvent) {
+    e.preventDefault();
+    if (!importInput.trim()) return;
+    setImporting(true);
+    setImportError(null);
+    setImportSuccess(null);
+    try {
+      const res = await fetch("/api/playlists/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: importInput.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg =
+          data.error === "premium_required"
+            ? "Spotify Premium requis pour importer."
+            : data.error === "no_spotify_link"
+              ? "Connecte ton compte Spotify d'abord."
+              : data.error === "quota_reached"
+                ? data.detail ?? "Trop de playlists importées."
+                : data.error === "playlist_not_found"
+                  ? "Playlist introuvable ou privée."
+                  : data.detail ?? data.error ?? "Import échoué.";
+        throw new Error(msg);
+      }
+      // Refresh: recharge la liste, sélectionne la nouvelle.
+      const { data: lists } = await supabase
+        .from("curated_playlists")
+        .select("id, slug, name, description, cover_url")
+        .eq("is_active", true)
+        .order("name");
+      const enriched = (lists ?? []) as Playlist[];
+      const counts = await Promise.all(
+        enriched.map(async (pl) => {
+          const { count } = await supabase
+            .from("curated_tracks")
+            .select("id", { count: "exact", head: true })
+            .eq("playlist_id", pl.id);
+          return { id: pl.id, count: count ?? 0 };
+        }),
+      );
+      const map = new Map(counts.map((c) => [c.id, c.count]));
+      setPlaylists(enriched.map((p) => ({ ...p, track_count: map.get(p.id) ?? 0 })));
+      setPlaylistId(data.playlistRowId);
+      setImportSuccess(
+        `✓ « ${data.playlistName} » importée — ${data.importedCount} pistes prêtes.`,
+      );
+      setImportInput("");
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "erreur");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -521,11 +596,8 @@ export default function NewPartyPage() {
                 color: "var(--brun-mid)",
               }}
             >
-              Aucune playlist active. Va sur{" "}
-              <Link href="/admin/playlists" className="underline">
-                /admin/playlists
-              </Link>{" "}
-              pour en importer une.
+              Aucune playlist active pour l&apos;instant — importes-en une depuis
+              Spotify ci-dessous.
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 gap-2.5">
@@ -588,11 +660,143 @@ export default function NewPartyPage() {
               })}
             </div>
           )}
+
+          {/* Import inline d'une playlist Spotify publique */}
+          <div className="mt-3">
+            {!importOpen ? (
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
+                style={{
+                  padding: "12px",
+                  background: "var(--creme-2)",
+                  border: "1.5px dashed var(--creme-3)",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  color: "var(--brun-mid)",
+                  letterSpacing: "0.1em",
+                }}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                AJOUTER UNE PLAYLIST SPOTIFY
+              </button>
+            ) : (
+              <div
+                className="rounded-lg"
+                style={{
+                  padding: 14,
+                  background: "var(--creme-2)",
+                  border: "1.5px solid var(--creme-3)",
+                }}
+              >
+                <div className="flex items-baseline justify-between mb-2">
+                  <div
+                    className="font-mono"
+                    style={{
+                      fontSize: 11,
+                      color: "var(--brun-mid)",
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    IMPORTER DEPUIS SPOTIFY
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImportOpen(false);
+                      setImportError(null);
+                      setImportSuccess(null);
+                      setImportInput("");
+                    }}
+                    style={{
+                      fontSize: 11,
+                      color: "var(--brun-mid)",
+                    }}
+                  >
+                    Fermer
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    value={importInput}
+                    onChange={(e) => setImportInput(e.target.value)}
+                    placeholder="Lien Spotify (open.spotify.com/playlist/...)"
+                    className="flex-1 font-mono outline-none"
+                    style={{
+                      padding: "10px 12px",
+                      background: "var(--creme)",
+                      border: "1.5px solid var(--brun)",
+                      borderRadius: 6,
+                      fontSize: 13,
+                      color: "var(--brun)",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={onImportPlaylist}
+                    disabled={importing || !importInput.trim() || product !== "premium"}
+                    className="font-mono font-semibold rounded disabled:opacity-50"
+                    style={{
+                      background: "var(--brun)",
+                      color: "var(--creme)",
+                      padding: "10px 16px",
+                      fontSize: 12,
+                      letterSpacing: "0.1em",
+                    }}
+                  >
+                    {importing ? "IMPORT…" : "IMPORTER"}
+                  </button>
+                </div>
+                {product !== "premium" && (
+                  <p
+                    className="mt-2"
+                    style={{ fontSize: 11, color: "var(--brun-mid)" }}
+                  >
+                    Spotify Premium requis pour importer une playlist.
+                  </p>
+                )}
+                {importError && (
+                  <p
+                    className="mt-2"
+                    style={{ fontSize: 12, color: "var(--oxblood)" }}
+                  >
+                    {importError}
+                  </p>
+                )}
+                {importSuccess && (
+                  <p
+                    className="mt-2"
+                    style={{ fontSize: 12, color: "var(--green-pret)" }}
+                  >
+                    {importSuccess}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 03 Mode */}
         <div className="mt-7">
           <MetaLabel>03 · Mode de jeu</MetaLabel>
+          {isMobile && mode === "online_premium" && (
+            <div
+              className="mt-2 rounded-md"
+              style={{
+                padding: "10px 14px",
+                background: "rgba(212,166,86,0.12)",
+                border: "1px solid var(--or)",
+                fontSize: 12,
+                color: "var(--brun)",
+                lineHeight: 1.45,
+              }}
+            >
+              ⚠ La lecture Spotify dans le navigateur est instable sur iPhone.
+              Recommandé&nbsp;: mode <strong>« Audio chez l&apos;hôte »</strong>{" "}
+              avec un PC/Mac qui lance le son.
+            </div>
+          )}
           <div className="mt-3 grid sm:grid-cols-3 gap-2.5">
             {(
               [

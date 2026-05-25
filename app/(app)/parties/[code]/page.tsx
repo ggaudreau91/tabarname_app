@@ -75,7 +75,8 @@ export default function RoomPage({
   const { code } = use(params);
   const upperCode = code.toUpperCase();
   const supabase = useMemo(() => getSupabaseBrowser(), []);
-  const { product, isReady, deviceId, playUri } = useSpotifyPlayer();
+  const { product, isReady, deviceId, ensurePlaying, error: playerError } =
+    useSpotifyPlayer();
 
   const [selfId, setSelfId] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -98,8 +99,25 @@ export default function RoomPage({
   } | null>(null);
   const [ownedPlayerIds, setOwnedPlayerIds] = useState<string[]>([]);
   const [passReady, setPassReady] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [playbackStalled, setPlaybackStalled] = useState(false);
   const playedUriRef = useRef<string | null>(null);
   const lastSeenActiveRef = useRef<string | null>(null);
+
+  // Hydrate audioUnlocked depuis sessionStorage — un seul clic par onglet.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.sessionStorage.getItem("tabarname:audio-unlocked") !== "1") return;
+    queueMicrotask(() => setAudioUnlocked(true));
+  }, []);
+
+  const unlockAudio = useCallback(() => {
+    setAudioUnlocked(true);
+    setPlaybackStalled(false);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("tabarname:audio-unlocked", "1");
+    }
+  }, []);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSelfId(data.user?.id ?? null));
@@ -305,6 +323,16 @@ export default function RoomPage({
     room?.current_turn_id,
   ]);
 
+  // Le user courant doit-il déclencher la lecture audio sur ce device?
+  // Faux en host_audio quand on n'est pas l'hôte → on n'a rien à débloquer.
+  const shouldPlayAudio =
+    !!room &&
+    (room.mode === "online_premium" ||
+      room.mode === "local_pass" ||
+      (room.mode === "host_audio" &&
+        (selfId === room.host_player_id ||
+          ownedPlayerIds.includes(room.host_player_id))));
+
   // Lecture Spotify automatique
   useEffect(() => {
     if (!turn) {
@@ -323,12 +351,8 @@ export default function RoomPage({
       console.log("[playback] skip: already played this uri");
       return;
     }
-    if (
-      room?.mode === "host_audio" &&
-      selfId !== room.host_player_id &&
-      !ownedPlayerIds.includes(room.host_player_id)
-    ) {
-      console.log("[playback] skip: host_audio mode, I'm not the host");
+    if (!shouldPlayAudio) {
+      console.log("[playback] skip: this device n'a pas à jouer l'audio");
       playedUriRef.current = turn.spotify_uri;
       return;
     }
@@ -347,15 +371,53 @@ export default function RoomPage({
       console.log("[playback] skip: waiting for user 'ready' gesture");
       return;
     }
+    // En online/host: pareil — on exige un geste utilisateur explicite avant
+    // la toute première lecture pour respecter les autoplay policies.
+    if (!audioUnlocked) {
+      console.log("[playback] skip: waiting for audio unlock gesture");
+      return;
+    }
     console.log("[playback] attempt", turn.spotify_uri);
     playedUriRef.current = turn.spotify_uri;
-    playUri(turn.spotify_uri).catch((e) => {
+    const uri = turn.spotify_uri;
+    queueMicrotask(() => setPlaybackStalled(false));
+    ensurePlaying(uri).catch((e) => {
       console.error("[playback] error", e);
-      setError(String(e));
-      // Reset pour retry au prochain re-render
+      setPlaybackStalled(true);
+      // Reset pour permettre un retry manuel via le bouton "Réessayer"
       playedUriRef.current = null;
     });
-  }, [turn, isReady, deviceId, product, room, selfId, playUri, ownedPlayerIds, passReady]);
+  }, [
+    turn,
+    isReady,
+    deviceId,
+    product,
+    room,
+    selfId,
+    ensurePlaying,
+    ownedPlayerIds,
+    passReady,
+    audioUnlocked,
+    shouldPlayAudio,
+  ]);
+
+  // Retry manuel: déclenché par le bouton "Réessayer" — re-tente la lecture
+  // du tour courant.
+  const retryPlayback = useCallback(() => {
+    if (!turn?.spotify_uri) return;
+    setPlaybackStalled(false);
+    playedUriRef.current = null;
+    // Force le ré-run de l'effect via un microtask
+    queueMicrotask(() => {
+      if (!turn?.spotify_uri) return;
+      playedUriRef.current = turn.spotify_uri;
+      ensurePlaying(turn.spotify_uri).catch((e) => {
+        console.error("[playback] retry error", e);
+        setPlaybackStalled(true);
+        playedUriRef.current = null;
+      });
+    });
+  }, [turn, ensurePlaying]);
 
   const isLocalMode = room?.mode === "local_pass";
   const isHost =
@@ -862,6 +924,79 @@ export default function RoomPage({
               ownedPlayerIds.includes(room.host_player_id)))
         }
       />
+
+      {/* Geste utilisateur requis avant la première lecture (autoplay policy) */}
+      {shouldPlayAudio && !audioUnlocked && product === "premium" && !isLocalMode && (
+        <button
+          type="button"
+          onClick={unlockAudio}
+          className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
+          style={{
+            background: "var(--or)",
+            color: "var(--brun)",
+            padding: "12px 18px",
+            fontSize: 13,
+            letterSpacing: "0.08em",
+            borderTop: "1px solid var(--brun)",
+            borderBottom: "1px solid var(--brun)",
+          }}
+        >
+          🔊 TOUCHE ICI POUR ACTIVER LE SON
+        </button>
+      )}
+
+      {/* Erreur de lecture / stall — propose un retry */}
+      {shouldPlayAudio && audioUnlocked && (playbackStalled || playerError) && (
+        <div
+          className="w-full flex items-center justify-between gap-3"
+          style={{
+            background: "rgba(139,35,49,0.08)",
+            color: "var(--oxblood)",
+            padding: "10px 18px",
+            fontSize: 13,
+            borderTop: "1px solid var(--oxblood)",
+            borderBottom: "1px solid var(--oxblood)",
+          }}
+        >
+          <span className="truncate">
+            {playerError ?? "La lecture n'a pas démarré. Réessaye."}
+          </span>
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={retryPlayback}
+              className="font-mono font-semibold rounded"
+              style={{
+                background: "var(--oxblood)",
+                color: "var(--creme)",
+                padding: "6px 14px",
+                fontSize: 12,
+                letterSpacing: "0.08em",
+              }}
+            >
+              RÉESSAYER
+            </button>
+            {turn?.spotify_uri && (
+              <a
+                href={turn.spotify_uri.replace("spotify:track:", "https://open.spotify.com/track/")}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono font-semibold rounded"
+                style={{
+                  background: "transparent",
+                  color: "var(--oxblood)",
+                  padding: "6px 14px",
+                  fontSize: 12,
+                  letterSpacing: "0.08em",
+                  border: "1px solid var(--oxblood)",
+                }}
+              >
+                OUVRIR SPOTIFY
+              </a>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 max-w-7xl mx-auto w-full flex flex-col gap-6 sm:gap-7">
         {turn && (

@@ -51,8 +51,15 @@ export async function importPlaylist(params: {
   name?: string;
   /** ID du joueur dont le token Spotify est utilisé pour l'API */
   actingPlayerId: string;
+  /** Joueur à enregistrer comme importateur (pour l'attribution UI/quota) */
+  importedBy?: string;
+  /** Force is_active=true à la création (défaut: false, comportement admin) */
+  markActive?: boolean;
+  /** Marque la playlist comme imported par un user (défaut: false) */
+  markUserImported?: boolean;
 }): Promise<{
   playlistRowId: string;
+  playlistName: string;
   importedCount: number;
   totalAvailable: number;
 }> {
@@ -105,7 +112,9 @@ export async function importPlaylist(params: {
         description: meta.description || null,
         cover_url: meta.images?.[0]?.url ?? null,
         spotify_playlist_id: params.playlistId,
-        is_active: false,
+        is_active: params.markActive ?? false,
+        is_user_imported: params.markUserImported ?? false,
+        imported_by: params.importedBy ?? null,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "slug" },
@@ -144,7 +153,21 @@ export async function importPlaylist(params: {
 
   return {
     playlistRowId: pl.id,
+    playlistName: pl.name as string,
     importedCount: rows.length,
     totalAvailable: total,
   };
+}
+
+/** Slugifie un nom de playlist en kebab-case ASCII, tronqué. */
+export function slugifyName(name: string): string {
+  return (
+    name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "playlist"
+  );
 }
