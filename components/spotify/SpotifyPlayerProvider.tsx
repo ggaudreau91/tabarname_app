@@ -281,7 +281,8 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.warn("[spotify-native] connect failed", e);
         if (!cancelled) {
-          setError("Connexion à Spotify échouée. Spotify est-il installé ?");
+          const msg = e instanceof Error ? e.message : String(e);
+          setError(`Spotify natif: ${msg}`);
         }
       }
     })();
