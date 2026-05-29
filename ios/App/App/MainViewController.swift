@@ -7,7 +7,6 @@ import Capacitor
 class MainViewController: CAPBridgeViewController {
     override open func capacitorDidLoad() {
         super.capacitorDidLoad()
-        NSLog("⚡️ [Tabarname] capacitorDidLoad — enregistrement de SpotifyRemote (bridge=\(bridge != nil))")
         bridge?.registerPluginInstance(SpotifyRemotePlugin())
     }
 }
