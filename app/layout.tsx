@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -25,6 +25,15 @@ export const metadata: Metadata = {
   title: "Tabarname — Jeu musical multijoueur",
   description:
     "Devine l'année des chansons et construis ta timeline. Jeu musical multijoueur propulsé par Spotify, avec une touche québécoise.",
+};
+
+// viewport-fit=cover: nécessaire pour que env(safe-area-inset-*) renvoie les
+// vraies marges (Dynamic Island / status bar / home indicator) dans l'app iOS.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#2D1B12",
 };
 
 export default function RootLayout({

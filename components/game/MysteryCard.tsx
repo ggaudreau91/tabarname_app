@@ -14,7 +14,7 @@ type Props = {
 export function MysteryCard({ isYouActive }: Props) {
   return (
     <div
-      className="flex flex-col items-stretch relative overflow-hidden p-4 sm:p-[18px]"
+      className="flex flex-col items-stretch relative overflow-hidden p-4 sm:p-[18px] animate-rise-in"
       style={{
         background: "var(--creme)",
         border: "1.5px solid var(--brun)",

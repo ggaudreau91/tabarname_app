@@ -165,3 +165,55 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+
+/* ---------------------------------------------------------------------------
+   Safe-area (iOS Capacitor) — env() ne renvoie des marges qu'avec
+   viewport-fit=cover (cf. app/layout.tsx).
+--------------------------------------------------------------------------- */
+.safe-top {
+  padding-top: calc(env(safe-area-inset-top, 0px) + var(--safe-top-base, 0px));
+}
+.safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--safe-bottom-base, 0px));
+}
+
+/* ---------------------------------------------------------------------------
+   Animations de jeu
+--------------------------------------------------------------------------- */
+@keyframes confetti-fall {
+  0% { transform: translateY(-12vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translateY(112vh) rotate(720deg); opacity: 1; }
+}
+@keyframes card-flip-in {
+  0% { transform: rotateY(90deg) scale(0.92); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: rotateY(0deg) scale(1); opacity: 1; }
+}
+@keyframes rise-in {
+  0% { transform: translateY(16px) scale(0.97); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes fade-slide-in {
+  0% { transform: translateY(10px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes pop-in {
+  0% { transform: scale(0.5) rotate(-8deg); opacity: 0; }
+  70% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.animate-rise-in { animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-fade-slide-in { animation: fade-slide-in 0.4s ease-out both; }
+.animate-card-flip-in { animation: card-flip-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-pop-in { animation: pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise-in,
+  .animate-fade-slide-in,
+  .animate-card-flip-in,
+  .animate-pop-in {
+    animation: none;
+  }
+}

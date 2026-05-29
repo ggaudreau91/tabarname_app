@@ -20,6 +20,7 @@ import { VinylDisc } from "@/components/brand/VinylDisc";
 import { MetaLabel } from "@/components/brand/Stamp";
 import { YearCard } from "@/components/brand/YearCard";
 import type { TimelineCard, TurnOutcome, TurnPhase } from "@/types/game";
+import { useTurnTimer } from "@/lib/game/useTurnTimer";
 
 const CHALLENGE_WINDOW_SECONDS = 10;
 const TURN_PLAYING_HINT_SECONDS = 30;
@@ -34,6 +35,7 @@ type Room = {
   win_condition_cards: number;
   playlist_id: string;
   challenges_enabled: boolean;
+  turn_seconds: number;
 };
 
 type Playlist = {
@@ -80,6 +82,8 @@ export default function RoomPage({
     isReady,
     deviceId,
     ensurePlaying,
+    pause,
+    resume,
     error: playerError,
     mode: playerMode,
     devices,
@@ -111,8 +115,10 @@ export default function RoomPage({
   const [passReady, setPassReady] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [playbackStalled, setPlaybackStalled] = useState(false);
+  const [paused, setPaused] = useState(false);
   const playedUriRef = useRef<string | null>(null);
   const lastSeenActiveRef = useRef<string | null>(null);
+  const timeoutFiredRef = useRef<string | null>(null);
 
   // Hydrate audioUnlocked depuis sessionStorage — un seul clic par onglet.
   useEffect(() => {
@@ -184,7 +190,7 @@ export default function RoomPage({
     const { data: full } = await supabase
       .from("rooms")
       .select(
-        "id, code, host_player_id, status, mode, current_turn_id, win_condition_cards, playlist_id, challenges_enabled",
+        "id, code, host_player_id, status, mode, current_turn_id, win_condition_cards, playlist_id, challenges_enabled, turn_seconds",
       )
       .eq("code", upperCode)
       .maybeSingle<Room>();
@@ -205,6 +211,7 @@ export default function RoomPage({
       win_condition_cards: data.win_condition_cards,
       playlist_id: data.playlist_id,
       challenges_enabled: data.challenges_enabled ?? true,
+      turn_seconds: data.turn_seconds ?? 30,
     };
     setRoom(partial);
     return partial;
@@ -647,6 +654,46 @@ export default function RoomPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turn?.id, turn?.phase, room?.challenges_enabled]);
 
+  // Pause/reprise depuis l'écran de jeu (musique + compte à rebours figés).
+  const togglePause = useCallback(() => {
+    setPaused((p) => {
+      const next = !p;
+      if (next) void pause().catch(() => {});
+      else void resume().catch(() => {});
+      return next;
+    });
+  }, [pause, resume]);
+
+  // Reset pause + garde-timeout à chaque nouveau tour.
+  useEffect(() => {
+    setPaused(false);
+    timeoutFiredRef.current = null;
+  }, [turn?.id]);
+
+  // Compte à rebours autoritaire de la phase de jeu (pausable). Sert au timeout.
+  const turnRemaining = useTurnTimer(
+    turn && (turn.phase === "turn_playing" || turn.phase === "guess_window")
+      ? turn.phase_changed_at
+      : null,
+    room?.turn_seconds ?? TURN_PLAYING_HINT_SECONDS,
+    paused,
+  );
+
+  // Timeout: à 0s sans placement, on clôt le tour comme raté (reveal → suivant).
+  // Déclenché par le joueur actif (online) ou l'appareil (local). Serveur idempotent.
+  useEffect(() => {
+    if (!turn) return;
+    if (turn.phase !== "turn_playing" && turn.phase !== "guess_window") return;
+    if (!(isActive || isLocalMode)) return;
+    if (turnRemaining > 0) return;
+    if (timeoutFiredRef.current === turn.id) return;
+    timeoutFiredRef.current = turn.id;
+    callApi(`/api/parties/${upperCode}/timeout`, { turn_id: turn.id }).catch((e) =>
+      console.warn("[timeout] failed", e),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turnRemaining, turn?.id, turn?.phase, isActive, isLocalMode, upperCode]);
+
   // ----- RENDERS -----
 
   if (!room) {
@@ -1024,11 +1071,12 @@ export default function RoomPage({
           </div>
         )}
 
-      {/* iOS / Connect: devices dispos → sélecteur si plusieurs */}
+      {/* Sortie audio: en native on affiche toujours le sélecteur (« Cet iPhone »
+          + appareils Connect) ; en connect, dès qu'au moins un device existe. */}
       {shouldPlayAudio &&
-        playerMode === "connect" &&
         product === "premium" &&
-        devices.length > 0 && (
+        (playerMode === "native" ||
+          (playerMode === "connect" && devices.length > 0)) && (
           <div
             className="w-full flex items-center justify-between gap-3"
             style={{
@@ -1056,6 +1104,9 @@ export default function RoomPage({
                 fontSize: 12,
               }}
             >
+              {playerMode === "native" && (
+                <option value="">📱 Cet iPhone</option>
+              )}
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
                   {d.name} {d.is_active ? "(actif)" : ""}
@@ -1134,9 +1185,10 @@ export default function RoomPage({
       <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 max-w-7xl mx-auto w-full flex flex-col gap-6 sm:gap-7">
         {turn && (
           <div className="grid lg:grid-cols-[260px_1fr] gap-5 lg:gap-8 items-stretch">
-            <MysteryCard isYouActive={isActive} />
+            <MysteryCard key={turn.id} isYouActive={isActive} />
             {activePlayer && (
               <AudioPanel
+                key={turn.id}
                 activePseudo={activePlayer.pseudo}
                 activePlayerId={activePlayer.player_id}
                 isYouActive={isActive}
@@ -1144,7 +1196,13 @@ export default function RoomPage({
                 durationSeconds={
                   turn.phase === "challenge_window" && room.challenges_enabled
                     ? CHALLENGE_WINDOW_SECONDS
-                    : TURN_PLAYING_HINT_SECONDS
+                    : room.turn_seconds
+                }
+                paused={paused}
+                onTogglePause={
+                  shouldPlayAudio && turn.phase === "turn_playing"
+                    ? togglePause
+                    : undefined
                 }
                 phaseLabel={
                   turn.phase === "turn_playing"

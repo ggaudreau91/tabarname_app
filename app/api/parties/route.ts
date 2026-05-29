@@ -8,6 +8,7 @@ const OnlineBody = z.object({
   mode: z.enum(["online_premium", "host_audio"]).default("online_premium"),
   playlist_id: z.string().uuid(),
   win_condition_cards: z.number().int().min(3).max(20).default(10),
+  turn_seconds: z.number().int().min(15).max(300).default(30),
   challenges_enabled: z.boolean().default(true),
   pseudo: z.string().min(1).max(40),
   has_premium: z.boolean().default(false),
@@ -17,6 +18,7 @@ const LocalBody = z.object({
   mode: z.literal("local_pass"),
   playlist_id: z.string().uuid(),
   win_condition_cards: z.number().int().min(3).max(20).default(10),
+  turn_seconds: z.number().int().min(15).max(300).default(30),
   local_players: z.array(z.string().min(1).max(40)).min(2).max(8),
 });
 
@@ -41,6 +43,7 @@ export async function POST(req: Request) {
       p_playlist_id: body.playlist_id,
       p_pseudos: body.local_players,
       p_win_cards: body.win_condition_cards,
+      p_turn_seconds: body.turn_seconds,
     });
     if (error) return rpcError(error);
     return NextResponse.json({ room }, { status: 201 });
@@ -55,6 +58,7 @@ export async function POST(req: Request) {
     p_mode: body.mode,
     p_win_cards: body.win_condition_cards,
     p_challenges_enabled: body.challenges_enabled,
+    p_turn_seconds: body.turn_seconds,
   });
   if (createErr) return rpcError(createErr);
 

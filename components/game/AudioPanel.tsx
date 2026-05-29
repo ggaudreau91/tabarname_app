@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Pause } from "lucide-react";
+import { Pause, Play } from "lucide-react";
 import { MetaLabel } from "@/components/brand/Stamp";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
+import { useTurnTimer } from "@/lib/game/useTurnTimer";
 
 type Props = {
   activePseudo: string;
@@ -12,6 +12,10 @@ type Props = {
   phaseChangedAt: string;
   durationSeconds: number;
   phaseLabel: string;
+  /** Pause en cours (musique + compte à rebours figés) */
+  paused?: boolean;
+  /** Bascule lecture/pause; si absent, le bouton est masqué */
+  onTogglePause?: () => void;
 };
 
 // Panneau brun avec timer Fraunces géant, avatar du joueur actif, et barre
@@ -24,19 +28,10 @@ export function AudioPanel({
   phaseChangedAt,
   durationSeconds,
   phaseLabel,
+  paused = false,
+  onTogglePause,
 }: Props) {
-  const [remaining, setRemaining] = useState(durationSeconds);
-
-  useEffect(() => {
-    const startedAt = new Date(phaseChangedAt).getTime();
-    const tick = () => {
-      const elapsed = (Date.now() - startedAt) / 1000;
-      setRemaining(Math.max(0, durationSeconds - elapsed));
-    };
-    tick();
-    const id = setInterval(tick, 250);
-    return () => clearInterval(id);
-  }, [phaseChangedAt, durationSeconds]);
+  const remaining = useTurnTimer(phaseChangedAt, durationSeconds, paused);
 
   const elapsed = durationSeconds - remaining;
   const pct = (elapsed / durationSeconds) * 100;
@@ -45,7 +40,7 @@ export function AudioPanel({
 
   return (
     <div
-      className="relative overflow-hidden flex flex-col p-5 sm:p-7"
+      className="relative overflow-hidden flex flex-col p-5 sm:p-7 animate-fade-slide-in"
       style={{
         background: "var(--brun)",
         color: "var(--creme)",
@@ -104,19 +99,27 @@ export function AudioPanel({
       </div>
 
       <div className="mt-6 flex items-center gap-4">
-        <div
-          className="rounded-full flex items-center justify-center shrink-0"
+        <button
+          type="button"
+          onClick={onTogglePause}
+          disabled={!onTogglePause}
+          className="rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95"
           style={{
             width: 56,
             height: 56,
             background: "var(--or)",
             color: "var(--brun)",
             boxShadow: "0 4px 14px rgba(212,166,86,0.4)",
+            cursor: onTogglePause ? "pointer" : "default",
           }}
-          aria-label="Lecture en cours"
+          aria-label={paused ? "Reprendre la lecture" : "Mettre en pause"}
         >
-          <Pause size={22} fill="var(--brun)" strokeWidth={0} />
-        </div>
+          {paused ? (
+            <Play size={22} fill="var(--brun)" strokeWidth={0} style={{ marginLeft: 2 }} />
+          ) : (
+            <Pause size={22} fill="var(--brun)" strokeWidth={0} />
+          )}
+        </button>
         <div className="flex-1">
           <div
             className="relative overflow-hidden"
@@ -165,11 +168,11 @@ export function AudioPanel({
                 style={{
                   width: 6,
                   height: 6,
-                  background: "var(--green-spotify)",
-                  animation: "pulse-soft 1.4s infinite",
+                  background: paused ? "rgba(250,246,240,0.4)" : "var(--green-spotify)",
+                  animation: paused ? "none" : "pulse-soft 1.4s infinite",
                 }}
               />
-              SPOTIFY · STREAM
+              {paused ? "SPOTIFY · PAUSE" : "SPOTIFY · STREAM"}
             </span>
             <span>
               0:{String(Math.floor(durationSeconds)).padStart(2, "0")}

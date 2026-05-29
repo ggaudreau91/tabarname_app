@@ -97,26 +97,29 @@ export function RevealOverlay({
         <VinylDisc size={560} labelColor="var(--oxblood)" />
       </div>
 
-      {/* Confetti */}
-      {Array.from({ length: 24 }).map((_, i) => {
-        const colors = ["var(--or)", "var(--oxblood)", "var(--creme)"];
-        return (
-          <div
-            key={i}
-            className="absolute"
-            style={{
-              left: `${(i * 37) % 100}%`,
-              top: `${(i * 29) % 100}%`,
-              width: 6,
-              height: 14,
-              background: colors[i % 3],
-              transform: `rotate(${i * 37}deg)`,
-              opacity: 0.5,
-              borderRadius: 1,
-            }}
-          />
-        );
-      })}
+      {/* Confetti qui tombent — seulement quand quelqu'un gagne la carte */}
+      {outcome !== "all_wrong" &&
+        Array.from({ length: 28 }).map((_, i) => {
+          const colors = ["var(--or)", "var(--oxblood)", "var(--creme)"];
+          return (
+            <div
+              key={i}
+              className="absolute"
+              style={{
+                left: `${(i * 37) % 100}%`,
+                top: 0,
+                width: 6 + (i % 3) * 2,
+                height: 12 + (i % 4) * 3,
+                background: colors[i % 3],
+                opacity: 0.85,
+                borderRadius: 1,
+                animation: `confetti-fall ${2.6 + (i % 5) * 0.4}s linear ${
+                  (i % 7) * 0.18
+                }s infinite`,
+              }}
+            />
+          );
+        })}
 
       {/* Main content */}
       <div
@@ -130,7 +133,7 @@ export function RevealOverlay({
         </div>
 
         <h2
-          className="font-display font-semibold text-center"
+          className="font-display font-semibold text-center animate-rise-in"
           style={{
             fontSize: "clamp(56px, 9vw, 96px)",
             lineHeight: 0.95,
@@ -153,7 +156,10 @@ export function RevealOverlay({
         </div>
 
         {/* Card flip showcase */}
-        <div className="mt-14 flex items-center gap-10 sm:gap-14">
+        <div
+          className="mt-14 flex items-center gap-10 sm:gap-14"
+          style={{ perspective: "1100px" }}
+        >
           <div
             className="hidden sm:block"
             style={{
@@ -197,10 +203,7 @@ export function RevealOverlay({
           </div>
 
           {/* Revealed card */}
-          <div
-            className="relative"
-            style={{ transform: "rotateY(8deg) rotateZ(4deg)" }}
-          >
+          <div className="relative animate-card-flip-in">
             <div
               className="flex flex-col"
               style={{
@@ -307,7 +310,7 @@ export function RevealOverlay({
             </div>
             {outcome !== "all_wrong" && (
               <div
-                className="absolute font-display italic font-bold"
+                className="absolute font-display italic font-bold animate-pop-in"
                 style={{
                   top: -22,
                   right: -22,
@@ -316,6 +319,7 @@ export function RevealOverlay({
                   padding: "10px 18px",
                   borderRadius: 30,
                   fontSize: 18,
+                  animationDelay: "0.5s",
                   transform: "rotate(8deg)",
                   boxShadow: "0 6px 20px rgba(0,0,0,0.4)",
                   border: "2px solid var(--creme)",

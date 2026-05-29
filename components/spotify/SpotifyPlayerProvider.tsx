@@ -37,17 +37,21 @@ type SpotifyPlayerState = {
   product: "premium" | "free" | "open" | null;
   error: string | null;
   isPlaying: boolean;
-  /** Mode Connect uniquement: devices Spotify dispos pour l'auth user */
+  /** Connect + Native: devices Spotify Connect dispos pour l'auth user */
   devices: SpotifyConnectDevice[];
-  /** Mode Connect uniquement: id du device cible (Spotify app mobile, etc.) */
+  /**
+   * Device Connect cible. En mode native, `null` = « cet iPhone » (App Remote);
+   * une valeur = transfert vers un device Connect (enceinte, etc.).
+   */
   selectedDeviceId: string | null;
-  /** Mode Connect uniquement: sélectionne un device */
+  /** Sélectionne un device Connect (chaîne vide ⇒ null ⇒ cet iPhone en natif) */
   selectDevice: (id: string) => void;
-  /** Mode Connect uniquement: rafraîchit la liste des devices */
+  /** Rafraîchit la liste des devices Connect */
   refreshDevices: () => Promise<void>;
   playUri: (uri: string) => Promise<void>;
   ensurePlaying: (uri: string, timeoutMs?: number) => Promise<void>;
   pause: () => Promise<void>;
+  resume: () => Promise<void>;
 };
 
 const SpotifyPlayerContext = createContext<SpotifyPlayerState | null>(null);
@@ -213,8 +217,11 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       if (!res.ok) return;
       const data = (await res.json()) as { devices: SpotifyConnectDevice[] };
       setDevices(data.devices);
-      // Auto-select: priorité au device déjà actif, puis premier "Smartphone"
-      // ou "Speaker", sinon le premier de la liste.
+      // En mode native, « cet iPhone » (App Remote) est le défaut: on ne
+      // sélectionne PAS automatiquement un device Connect — l'utilisateur choisit.
+      if (mode === "native") return;
+      // Auto-select (connect): priorité au device déjà actif, puis premier
+      // "Smartphone" ou "Speaker", sinon le premier de la liste.
       setSelectedDeviceId((current) => {
         if (current && data.devices.some((d) => d.id === current)) return current;
         const active = data.devices.find((d) => d.is_active);
@@ -228,7 +235,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn("[spotify-connect] refresh devices failed", e);
     }
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     if (mode !== "connect") return;
@@ -285,29 +292,38 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
           setError(`Spotify natif: ${msg}`);
         }
       }
+      // Peupler la liste Connect pour permettre de transférer le son vers une
+      // enceinte/TV pendant la partie (sans auto-select, cf. refreshDevices).
+      if (!cancelled) refreshDevices();
     })();
+
+    const devicesPoll = setInterval(() => refreshDevices(), 8000);
 
     return () => {
       cancelled = true;
+      clearInterval(devicesPoll);
       handles.forEach((h) => h.then((handle) => handle.remove()).catch(() => {}));
       SpotifyRemote.disconnect().catch(() => {});
     };
-  }, [mode]);
+  }, [mode, refreshDevices]);
 
-  // Computed: device cible et ready selon le mode
-  const deviceId =
-    mode === "sdk" ? sdkDeviceId : mode === "connect" ? selectedDeviceId : null;
+  // Computed: device cible et ready selon le mode.
+  // En natif, selectedDeviceId non-null = transfert vers un device Connect;
+  // null = « cet iPhone » (App Remote, deviceId implicite).
+  const deviceId = mode === "sdk" ? sdkDeviceId : selectedDeviceId;
+  // En natif, on joue via l'App Remote (selectedDeviceId null) → pas besoin de deviceId.
+  const useNativeRemote = mode === "native" && !selectedDeviceId;
   const isReady =
     mode === "sdk"
       ? sdkReady
       : mode === "connect"
         ? !!selectedDeviceId
-        : nativeConnected;
+        : nativeConnected || !!selectedDeviceId;
 
   const playUri = useCallback(
     async (uri: string) => {
-      // Native: l'App Remote gère le device (l'app Spotify du téléphone).
-      if (mode === "native") {
+      // Natif « cet iPhone »: l'App Remote gère le device (app Spotify du tél.).
+      if (useNativeRemote) {
         await SpotifyRemote.playUri({ uri });
         setIsPlaying(true);
         return;
@@ -340,7 +356,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
 
         if (res.ok || res.status === 202 || res.status === 204) {
           console.log("[spotify] playUri OK", res.status);
-          if (mode === "connect") setIsPlaying(true);
+          if (mode !== "sdk") setIsPlaying(true);
           return;
         }
 
@@ -351,14 +367,15 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         if (res.status !== 404 && res.status !== 502 && res.status !== 503) {
           throw lastErr;
         }
-        // En mode connect, 404 = device pas actif → on re-fetch et on retry
-        if (mode === "connect") {
+        // Connect (ou natif vers device Connect): 404 = device pas actif → on
+        // re-fetch et on retry.
+        if (mode !== "sdk") {
           await refreshDevices();
         }
       }
       throw lastErr ?? new Error("playUri: retries épuisés");
     },
-    [deviceId, mode, refreshDevices],
+    [deviceId, mode, refreshDevices, useNativeRemote],
   );
 
   const ensurePlaying = useCallback(
@@ -387,9 +404,13 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
   );
 
   const pause = useCallback(async () => {
-    if (mode === "native") {
+    if (useNativeRemote) {
       await SpotifyRemote.pause().catch(() => {});
       setIsPlaying(false);
+      return;
+    }
+    if (mode === "sdk") {
+      await playerRef.current?.pause().catch(() => {});
       return;
     }
     if (!deviceId) return;
@@ -402,8 +423,32 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       },
     );
-    if (mode === "connect") setIsPlaying(false);
-  }, [deviceId, mode]);
+    setIsPlaying(false);
+  }, [deviceId, mode, useNativeRemote]);
+
+  const resume = useCallback(async () => {
+    if (useNativeRemote) {
+      await SpotifyRemote.resume().catch(() => {});
+      setIsPlaying(true);
+      return;
+    }
+    if (mode === "sdk") {
+      await playerRef.current?.resume().catch(() => {});
+      return;
+    }
+    if (!deviceId) return;
+    const tokenData = await fetchAccessToken();
+    if (!tokenData) return;
+    // Reprise sans body = continue la piste en cours sur le device.
+    await fetch(
+      `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(deviceId)}`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+      },
+    );
+    setIsPlaying(true);
+  }, [deviceId, mode, useNativeRemote]);
 
   return (
     <SpotifyPlayerContext.Provider
@@ -421,6 +466,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         playUri,
         ensurePlaying,
         pause,
+        resume,
       }}
     >
       {mode === "sdk" && (

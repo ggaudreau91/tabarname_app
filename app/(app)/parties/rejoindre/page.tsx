@@ -261,8 +261,8 @@ export default function JoinPartyPage() {
     >
       {/* TOP NAV */}
       <div
-        className="flex items-center justify-between px-5 sm:px-12 py-5"
-        style={{ borderBottom: "1px solid var(--creme-3)" }}
+        className="safe-top flex items-center justify-between px-5 sm:px-12 pb-5"
+        style={{ borderBottom: "1px solid var(--creme-3)", ["--safe-top-base" as string]: "20px" }}
       >
         <div className="flex items-center gap-2.5">
           <div

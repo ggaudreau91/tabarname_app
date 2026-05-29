@@ -194,12 +194,14 @@ export default function NewPartyPage() {
               mode,
               playlist_id: playlistId,
               win_condition_cards: winCards,
+              turn_seconds: turnSeconds,
               local_players: validLocalPseudos,
             }
           : {
               mode,
               playlist_id: playlistId,
               win_condition_cards: winCards,
+              turn_seconds: turnSeconds,
               challenges_enabled: challengesEnabled,
               pseudo: pseudo.trim(),
               has_premium: product === "premium",
@@ -246,6 +248,7 @@ export default function NewPartyPage() {
           background: "var(--brun)",
           color: "var(--creme)",
           minHeight: "min(36vh, 360px)",
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 2rem)",
         }}
       >
         <div className="absolute opacity-50" style={{ top: 60, right: -160 }}>
@@ -899,11 +902,9 @@ export default function NewPartyPage() {
               value={turnSeconds}
               onChange={setTurnSeconds}
               min={15}
-              max={60}
+              max={120}
               step={5}
               suffix="sec"
-              disabled
-              tooltip="Bientôt configurable"
             />
             <div
               className="rounded-lg"
