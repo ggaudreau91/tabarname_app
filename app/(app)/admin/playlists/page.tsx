@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { StatusPill } from "@/components/brand/StatusPill";
+import { Wordmark } from "@/components/brand/Wordmark";
 import { t } from "@/lib/i18n";
 
 type Playlist = {
@@ -19,12 +20,7 @@ type Playlist = {
 function TopBar() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--wine)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
-        </span>
-        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 18, color: "var(--ink)" }}>Tabarname</span>
-      </div>
+      <Wordmark height={24} />
       <Link href="/" className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-2)", border: "1px solid var(--line-strong)", borderRadius: 999, padding: "7px 13px", whiteSpace: "nowrap" }}>
         ← Retour
       </Link>

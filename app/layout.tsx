@@ -22,9 +22,28 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://tabarname-app.vercel.app"),
   title: "Tabarname — Jeu musical multijoueur",
   description:
     "Devine l'année des chansons et construis ta timeline. Jeu musical multijoueur propulsé par Spotify, avec une touche québécoise.",
+  openGraph: {
+    title: "Tabarname — Jeu musical multijoueur",
+    description:
+      "Devine l'année, bâtis ta timeline. Le jeu musical de party propulsé par Spotify, version québécoise.",
+    type: "website",
+    locale: "fr_CA",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Tabarname — Jeu musical multijoueur",
+    description:
+      "Devine l'année, bâtis ta timeline. Le jeu musical de party propulsé par Spotify.",
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Tabarname",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 // viewport-fit=cover: nécessaire pour que env(safe-area-inset-*) renvoie les
