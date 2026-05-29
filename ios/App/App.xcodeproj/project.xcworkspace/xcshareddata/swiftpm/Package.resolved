@@ -1,0 +1,24 @@
+{
+  "originHash" : "17203edb3cd324bd5c4885ee6a8d622a28d23d17f1a18ebc6138548dae2759d7",
+  "pins" : [
+    {
+      "identity" : "capacitor-swift-pm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ionic-team/capacitor-swift-pm.git",
+      "state" : {
+        "revision" : "992959f0467c781eb6a1637e69d87481238c3672",
+        "version" : "8.3.4"
+      }
+    },
+    {
+      "identity" : "ios-sdk",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/spotify/ios-sdk",
+      "state" : {
+        "branch" : "master",
+        "revision" : "0b3e54771738ad5e64f22c8e5e19ca76d6becc6c"
+      }
+    }
+  ],
+  "version" : 3
+}

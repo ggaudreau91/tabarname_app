@@ -10,23 +10,43 @@ import {
   type ReactNode,
 } from "react";
 import Script from "next/script";
+import { Capacitor } from "@capacitor/core";
+import { SpotifyRemote, type NativePlayerState } from "./nativeSpotifyRemote";
 
-// État exposé par le provider — minimal: ready/device_id/product/erreurs.
+export type SpotifyConnectDevice = {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+};
+
+// État exposé par le provider. On supporte trois backends de lecture:
+//  - SDK (desktop): le browser EST le device → deviceId fourni par le SDK.
+//  - Connect (iOS web): le user choisit un device externe (son app Spotify
+//    mobile); devices/selectedDeviceId/refreshDevices sont alors les sources de
+//    vérité.
+//  - Native (app iOS Capacitor): le Spotify iOS SDK (App Remote) télécommande
+//    directement l'app Spotify du téléphone; pas de device picker.
 type SpotifyPlayerState = {
+  /** Vrai mode de lecture pour ce browser */
+  mode: "sdk" | "connect" | "native";
+  /** SDK ready (mode=sdk) OU device sélectionné (mode=connect) */
   isReady: boolean;
+  /** Device qui sera la cible des play calls */
   deviceId: string | null;
   product: "premium" | "free" | "open" | null;
   error: string | null;
-  /** True quand le SDK reporte que la piste joue réellement (pas en pause). */
   isPlaying: boolean;
-  /** Lance la lecture d'une URI sur le device courant (PUT /me/player/play) */
+  /** Mode Connect uniquement: devices Spotify dispos pour l'auth user */
+  devices: SpotifyConnectDevice[];
+  /** Mode Connect uniquement: id du device cible (Spotify app mobile, etc.) */
+  selectedDeviceId: string | null;
+  /** Mode Connect uniquement: sélectionne un device */
+  selectDevice: (id: string) => void;
+  /** Mode Connect uniquement: rafraîchit la liste des devices */
+  refreshDevices: () => Promise<void>;
   playUri: (uri: string) => Promise<void>;
-  /**
-   * Lance + confirme que la lecture a démarré dans la fenêtre `timeoutMs`.
-   * Retry interne sur NO_ACTIVE_DEVICE. Lève si la lecture ne démarre pas.
-   */
   ensurePlaying: (uri: string, timeoutMs?: number) => Promise<void>;
-  /** Stoppe la lecture */
   pause: () => Promise<void>;
 };
 
@@ -41,17 +61,12 @@ export function useSpotifyPlayer(): SpotifyPlayerState {
 }
 
 /**
- * Heuristique pour détecter les browsers où le Web Playback SDK est cassé ou
- * très instable. Pas un bloc — sert à afficher un nudge UX vers le mode
- * "host_audio".
+ * iOS Safari (et tous les browsers iOS, qui utilisent WebKit) ne supportent
+ * pas correctement le Web Playback SDK. On force le mode Connect.
  */
 export function isLikelySdkUnsupported(): boolean {
   if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  const isIOS = /iPad|iPhone|iPod/.test(ua);
-  // Sur iOS, *tous* les browsers utilisent WebKit; le SDK reste cassé même
-  // dans Chrome iOS / Firefox iOS.
-  return isIOS;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
 async function fetchAccessToken(): Promise<{
@@ -73,29 +88,44 @@ async function transferPlayback(token: string, deviceId: string): Promise<void> 
     },
     body: JSON.stringify({ device_ids: [deviceId], play: false }),
   });
-  // 204 OK, 202 Accepted, 404 (no active session) sont tous "acceptables"
   if (!res.ok && res.status !== 404) {
-    console.warn("[spotify-sdk] transfer status", res.status, await res.text());
+    console.warn("[spotify] transfer status", res.status, await res.text());
   }
 }
 
 export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
-  const [isReady, setIsReady] = useState(false);
-  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [mode, setMode] = useState<"sdk" | "connect" | "native">("sdk");
+  const [sdkDeviceId, setSdkDeviceId] = useState<string | null>(null);
+  const [sdkReady, setSdkReady] = useState(false);
   const [product, setProduct] = useState<SpotifyPlayerState["product"]>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [devices, setDevices] = useState<SpotifyConnectDevice[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+  const [nativeConnected, setNativeConnected] = useState(false);
   const playerRef = useRef<Spotify.Player | null>(null);
   const eagerTransferredRef = useRef(false);
 
-  // 1. Le SDK appelle ce callback global une fois chargé
+  // 1. Mode-detection au mount: app native Capacitor → "native", iOS web →
+  //    "connect", sinon "sdk".
   useEffect(() => {
-    window.onSpotifyWebPlaybackSDKReady = () => setSdkLoaded(true);
+    if (Capacitor.isNativePlatform()) {
+      queueMicrotask(() => setMode("native"));
+    } else if (isLikelySdkUnsupported()) {
+      queueMicrotask(() => setMode("connect"));
+    }
   }, []);
 
-  // 2. Quand le SDK est chargé, on instancie le Player
+  // 2. SDK loader — uniquement si mode=sdk
   useEffect(() => {
+    if (mode !== "sdk") return;
+    window.onSpotifyWebPlaybackSDKReady = () => setSdkLoaded(true);
+  }, [mode]);
+
+  // 3. SDK instantiation — uniquement si mode=sdk
+  useEffect(() => {
+    if (mode !== "sdk") return;
     if (!sdkLoaded) return;
 
     let cancelled = false;
@@ -103,10 +133,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
     (async () => {
       const tokenData = await fetchAccessToken();
       if (cancelled) return;
-      if (!tokenData) {
-        // Pas de lien Spotify — pas un crash, juste pas de player
-        return;
-      }
+      if (!tokenData) return;
       setProduct(tokenData.product);
 
       const player = new window.Spotify.Player({
@@ -120,11 +147,9 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
 
       player.addListener("ready", async ({ device_id }) => {
         console.log("[spotify-sdk] ready", { device_id });
-        setDeviceId(device_id);
-        setIsReady(true);
+        setSdkDeviceId(device_id);
+        setSdkReady(true);
 
-        // Eager transfer: on revendique le device immédiatement, sans attendre
-        // le premier playUri. Évite NO_ACTIVE_DEVICE au premier play.
         if (eagerTransferredRef.current) return;
         eagerTransferredRef.current = true;
         try {
@@ -140,7 +165,7 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
 
       player.addListener("not_ready", ({ device_id }) => {
         console.warn("[spotify-sdk] not_ready", { device_id });
-        setIsReady(false);
+        setSdkReady(false);
         eagerTransferredRef.current = false;
       });
 
@@ -160,9 +185,6 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         console.error("[spotify-sdk] playback_error", message);
         setError(`Lecture: ${message}`);
       });
-
-      // player_state_changed: source de vérité sur isPlaying. null = pas de
-      // contexte actif (state suspendu / device pas owner).
       player.addListener("player_state_changed", (state) => {
         if (!state) {
           setIsPlaying(false);
@@ -182,11 +204,114 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       playerRef.current?.disconnect();
       playerRef.current = null;
     };
-  }, [sdkLoaded]);
+  }, [mode, sdkLoaded]);
+
+  // 4. Connect mode: hydrate product + devices
+  const refreshDevices = useCallback(async () => {
+    try {
+      const res = await fetch("/api/spotify/devices", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = (await res.json()) as { devices: SpotifyConnectDevice[] };
+      setDevices(data.devices);
+      // Auto-select: priorité au device déjà actif, puis premier "Smartphone"
+      // ou "Speaker", sinon le premier de la liste.
+      setSelectedDeviceId((current) => {
+        if (current && data.devices.some((d) => d.id === current)) return current;
+        const active = data.devices.find((d) => d.is_active);
+        if (active) return active.id;
+        const phone = data.devices.find(
+          (d) => d.type === "Smartphone" || d.type === "Speaker",
+        );
+        if (phone) return phone.id;
+        return data.devices[0]?.id ?? null;
+      });
+    } catch (e) {
+      console.warn("[spotify-connect] refresh devices failed", e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mode !== "connect") return;
+    let cancelled = false;
+    (async () => {
+      const tokenData = await fetchAccessToken();
+      if (cancelled) return;
+      if (tokenData) setProduct(tokenData.product);
+      await refreshDevices();
+    })();
+    // Refresh périodique tant que pas de device sélectionné — utile quand le
+    // user ouvre Spotify sur son iPhone après avoir chargé la page.
+    const id = setInterval(() => {
+      refreshDevices();
+    }, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [mode, refreshDevices]);
+
+  // 5. Native mode (Capacitor iOS): connecte l'App Remote et écoute son état.
+  useEffect(() => {
+    if (mode !== "native") return;
+    let cancelled = false;
+    const handles: Array<Promise<{ remove: () => void }>> = [];
+
+    (async () => {
+      const tokenData = await fetchAccessToken();
+      if (cancelled) return;
+      if (tokenData) setProduct(tokenData.product);
+      if (!tokenData) return;
+
+      handles.push(
+        SpotifyRemote.addListener("connected", () => setNativeConnected(true)),
+        SpotifyRemote.addListener("disconnected", ({ error }) => {
+          setNativeConnected(false);
+          if (error) console.warn("[spotify-native] disconnected", error);
+        }),
+        SpotifyRemote.addListener("stateChanged", (st: NativePlayerState) => {
+          setIsPlaying(!st.isPaused);
+        }),
+      );
+
+      try {
+        const { connected } = await SpotifyRemote.connect({
+          token: tokenData.access_token,
+        });
+        if (!cancelled) setNativeConnected(connected);
+      } catch (e) {
+        console.warn("[spotify-native] connect failed", e);
+        if (!cancelled) {
+          setError("Connexion à Spotify échouée. Spotify est-il installé ?");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      handles.forEach((h) => h.then((handle) => handle.remove()).catch(() => {}));
+      SpotifyRemote.disconnect().catch(() => {});
+    };
+  }, [mode]);
+
+  // Computed: device cible et ready selon le mode
+  const deviceId =
+    mode === "sdk" ? sdkDeviceId : mode === "connect" ? selectedDeviceId : null;
+  const isReady =
+    mode === "sdk"
+      ? sdkReady
+      : mode === "connect"
+        ? !!selectedDeviceId
+        : nativeConnected;
 
   const playUri = useCallback(
     async (uri: string) => {
-      if (!deviceId) throw new Error("device_id pas encore disponible");
+      // Native: l'App Remote gère le device (l'app Spotify du téléphone).
+      if (mode === "native") {
+        await SpotifyRemote.playUri({ uri });
+        setIsPlaying(true);
+        return;
+      }
+      if (!deviceId) throw new Error("aucun device disponible");
       const tokenData = await fetchAccessToken();
       if (!tokenData) throw new Error("pas de token Spotify");
 
@@ -195,12 +320,10 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
 
       for (let attempt = 0; attempt < backoffs.length; attempt++) {
         if (backoffs[attempt] > 0) {
-          // Avant un retry, on refait un transfer — souvent le device s'est
-          // désynchronisé entre deux appels.
           await transferPlayback(tokenData.access_token, deviceId);
           await new Promise((r) => setTimeout(r, backoffs[attempt]));
         }
-        console.log("[spotify-sdk] playUri attempt", attempt + 1, { uri, deviceId });
+        console.log("[spotify] playUri attempt", attempt + 1, { uri, deviceId, mode });
 
         const res = await fetch(
           `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(deviceId)}`,
@@ -215,39 +338,43 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         );
 
         if (res.ok || res.status === 202 || res.status === 204) {
-          console.log("[spotify-sdk] playUri OK", res.status);
+          console.log("[spotify] playUri OK", res.status);
+          if (mode === "connect") setIsPlaying(true);
           return;
         }
 
         const txt = await res.text();
         lastErr = new Error(`playUri ${res.status}: ${txt}`);
-        console.warn("[spotify-sdk] playUri attempt failed", res.status, txt);
+        console.warn("[spotify] playUri attempt failed", res.status, txt);
 
-        // Retry uniquement sur NO_ACTIVE_DEVICE (404) ou erreurs transitoires.
         if (res.status !== 404 && res.status !== 502 && res.status !== 503) {
           throw lastErr;
+        }
+        // En mode connect, 404 = device pas actif → on re-fetch et on retry
+        if (mode === "connect") {
+          await refreshDevices();
         }
       }
       throw lastErr ?? new Error("playUri: retries épuisés");
     },
-    [deviceId],
+    [deviceId, mode, refreshDevices],
   );
 
   const ensurePlaying = useCallback(
     async (uri: string, timeoutMs = 3500) => {
       await playUri(uri);
 
-      // Attend que le SDK confirme la lecture (event player_state_changed),
-      // via un polling rapide du player state — plus fiable que d'attendre
-      // un re-render du context.
+      // En mode SDK, on confirme via getCurrentState() du player local.
+      // En mode connect/native, le player local n'existe pas — on se fie au fait
+      // que la commande de lecture a réussi (204 côté device, ou App Remote).
+      if (mode !== "sdk") return;
+
       const player = playerRef.current;
       const start = Date.now();
       while (Date.now() - start < timeoutMs) {
         if (player) {
           const st = await player.getCurrentState().catch(() => null);
-          if (st && !st.paused) {
-            return;
-          }
+          if (st && !st.paused) return;
         } else if (isPlaying) {
           return;
         }
@@ -255,10 +382,15 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       }
       throw new Error("playback_not_confirmed");
     },
-    [playUri, isPlaying],
+    [playUri, isPlaying, mode],
   );
 
   const pause = useCallback(async () => {
+    if (mode === "native") {
+      await SpotifyRemote.pause().catch(() => {});
+      setIsPlaying(false);
+      return;
+    }
     if (!deviceId) return;
     const tokenData = await fetchAccessToken();
     if (!tokenData) return;
@@ -269,13 +401,30 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       },
     );
-  }, [deviceId]);
+    if (mode === "connect") setIsPlaying(false);
+  }, [deviceId, mode]);
 
   return (
     <SpotifyPlayerContext.Provider
-      value={{ isReady, deviceId, product, error, isPlaying, playUri, ensurePlaying, pause }}
+      value={{
+        mode,
+        isReady,
+        deviceId,
+        product,
+        error,
+        isPlaying,
+        devices,
+        selectedDeviceId,
+        selectDevice: setSelectedDeviceId,
+        refreshDevices,
+        playUri,
+        ensurePlaying,
+        pause,
+      }}
     >
-      <Script src="https://sdk.scdn.co/spotify-player.js" strategy="afterInteractive" />
+      {mode === "sdk" && (
+        <Script src="https://sdk.scdn.co/spotify-player.js" strategy="afterInteractive" />
+      )}
       {children}
     </SpotifyPlayerContext.Provider>
   );

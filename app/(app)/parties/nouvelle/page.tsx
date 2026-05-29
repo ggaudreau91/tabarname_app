@@ -81,13 +81,11 @@ export default function NewPartyPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Détection iOS/mobile: Web Playback SDK est cassé sur ces devices —
-    // on pré-sélectionne host_audio et on affichera un warning.
+    // Détection iOS/mobile: on garde le flag pour afficher un nudge UX, mais
+    // on ne force plus host_audio — le mode Connect permet de jouer en
+    // online_premium tant que l'app Spotify mobile est ouverte.
     if (!isLikelySdkUnsupported()) return;
-    queueMicrotask(() => {
-      setIsMobile(true);
-      setMode("host_audio");
-    });
+    queueMicrotask(() => setIsMobile(true));
   }, []);
 
   useEffect(() => {
@@ -792,9 +790,9 @@ export default function NewPartyPage() {
                 lineHeight: 1.45,
               }}
             >
-              ⚠ La lecture Spotify dans le navigateur est instable sur iPhone.
-              Recommandé&nbsp;: mode <strong>« Audio chez l&apos;hôte »</strong>{" "}
-              avec un PC/Mac qui lance le son.
+              📱 Sur iPhone, le son sortira de ton <strong>app Spotify
+              mobile</strong> (Connect). Garde-la ouverte en arrière-plan
+              pendant la partie.
             </div>
           )}
           <div className="mt-3 grid sm:grid-cols-3 gap-2.5">

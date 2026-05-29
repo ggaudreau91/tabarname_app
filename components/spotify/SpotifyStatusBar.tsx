@@ -10,7 +10,7 @@ type Props = {
 // Barre de diagnostic qui n'apparaît QUE quand quelque chose cloche côté
 // SDK Spotify. Sert à informer l'utilisateur ET à debug en prod.
 export function SpotifyStatusBar({ needsToPlay }: Props) {
-  const { isReady, deviceId, product, error } = useSpotifyPlayer();
+  const { isReady, deviceId, product, error, mode } = useSpotifyPlayer();
 
   if (!needsToPlay) return null;
 
@@ -26,8 +26,11 @@ export function SpotifyStatusBar({ needsToPlay }: Props) {
   } else if (product !== "premium") {
     message = "Compte Spotify non-Premium — la lecture est impossible dans ce navigateur.";
     kind = "warning";
-  } else if (!isReady || !deviceId) {
-    message = "Initialisation du lecteur Spotify… (peut prendre quelques secondes)";
+  } else if (mode === "native" ? !isReady : !isReady || !deviceId) {
+    message =
+      mode === "native"
+        ? "Connexion à Spotify… (assure-toi que l'app Spotify est installée)"
+        : "Initialisation du lecteur Spotify… (peut prendre quelques secondes)";
     kind = "info";
   }
 

@@ -11,6 +11,10 @@ export const SPOTIFY_SCOPES = [
   "user-read-private",
   "user-modify-playback-state",
   "user-read-playback-state",
+  // App Remote (app iOS native via Capacitor): requis pour que le SDK iOS de
+  // Spotify puisse télécommander l'app Spotify du téléphone. Sans ce scope,
+  // appRemote.connect() échoue. Les users existants doivent re-consentir.
+  "app-remote-control",
   // Pour l'import de playlists curées (admin) — depuis nov 2024 Spotify exige
   // un user-token avec ces scopes même pour des playlists publiques.
   "playlist-read-private",

@@ -15,6 +15,7 @@ function isAdmin(userId: string): boolean {
 }
 
 // PATCH /api/admin/playlists/[id]
+// Autorisé pour: les admins (sur tout) OU le user qui a importé la playlist.
 export async function PATCH(
   req: Request,
   ctx: { params: Promise<{ id: string }> },
@@ -22,12 +23,23 @@ export async function PATCH(
   const { id } = await ctx.params;
   const userId = await requireUserId();
   if (userId instanceof NextResponse) return userId;
-  if (!isAdmin(userId)) return NextResponse.json({ error: "not_admin" }, { status: 403 });
 
   const body = await parseJson(req, Body);
   if (body instanceof NextResponse) return body;
 
   const svc = getSupabaseService();
+
+  if (!isAdmin(userId)) {
+    const { data: pl } = await svc
+      .from("curated_playlists")
+      .select("imported_by")
+      .eq("id", id)
+      .maybeSingle();
+    if (!pl || pl.imported_by !== userId) {
+      return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    }
+  }
+
   const { data, error } = await svc
     .from("curated_playlists")
     .update({ ...body, updated_at: new Date().toISOString() })

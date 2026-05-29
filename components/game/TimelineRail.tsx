@@ -28,14 +28,14 @@ function DropSlot({
       onClick={onClick}
       disabled={!onClick}
       aria-label="Drop zone"
-      className="relative shrink-0 transition-all"
+      className="relative shrink-0 transition-all flex items-center justify-center"
       style={{
-        width: 28,
+        width: hover ? 44 : 28,
         height: 132,
         borderRadius: 6,
         border: `2px dashed ${hover ? "var(--oxblood)" : "var(--brun-mid)"}`,
         background: hover
-          ? "rgba(139,35,49,0.08)"
+          ? "var(--oxblood)"
           : active
             ? "rgba(139,35,49,0.04)"
             : "transparent",
@@ -44,17 +44,13 @@ function DropSlot({
     >
       {hover && (
         <div
-          className="absolute font-mono font-semibold whitespace-nowrap"
+          className="font-mono font-bold whitespace-nowrap"
           style={{
-            top: -22,
-            left: "50%",
-            transform: "translateX(-50%)",
-            fontSize: 10,
-            color: "var(--oxblood)",
-            background: "var(--creme)",
-            padding: "2px 6px",
-            borderRadius: 4,
-            border: "1px solid var(--oxblood)",
+            fontSize: 11,
+            color: "var(--creme)",
+            letterSpacing: "0.1em",
+            writingMode: "vertical-rl",
+            transform: "rotate(180deg)",
           }}
         >
           ICI

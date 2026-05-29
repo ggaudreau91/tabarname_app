@@ -68,12 +68,12 @@ export default function AdminPlaylistsPage() {
     setMessage(null);
     setError(null);
     try {
-      const res = await fetch("/api/admin/playlists", {
+      const res = await fetch("/api/playlists/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           input,
-          slug,
+          slug: slug || undefined,
           name: name.trim() || undefined,
         }),
       });
@@ -125,7 +125,10 @@ export default function AdminPlaylistsPage() {
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="slug">{t("admin.import.slugLabel")}</Label>
+              <Label htmlFor="slug">
+                {t("admin.import.slugLabel")}{" "}
+                <span className="text-muted-foreground text-xs">(optionnel)</span>
+              </Label>
               <Input
                 id="slug"
                 value={slug}
@@ -133,7 +136,6 @@ export default function AdminPlaylistsPage() {
                   setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))
                 }
                 placeholder={t("admin.import.slugPlaceholder")}
-                required
               />
             </div>
             <div className="space-y-2">

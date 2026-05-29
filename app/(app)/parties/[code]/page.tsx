@@ -75,8 +75,18 @@ export default function RoomPage({
   const { code } = use(params);
   const upperCode = code.toUpperCase();
   const supabase = useMemo(() => getSupabaseBrowser(), []);
-  const { product, isReady, deviceId, ensurePlaying, error: playerError } =
-    useSpotifyPlayer();
+  const {
+    product,
+    isReady,
+    deviceId,
+    ensurePlaying,
+    error: playerError,
+    mode: playerMode,
+    devices,
+    selectedDeviceId,
+    selectDevice,
+    refreshDevices,
+  } = useSpotifyPlayer();
 
   const [selfId, setSelfId] = useState<string | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -360,20 +370,39 @@ export default function RoomPage({
       console.log("[playback] skip: product is", product);
       return;
     }
-    if (!isReady || !deviceId) {
-      console.log("[playback] skip: SDK not ready yet", { isReady, deviceId });
+    // En mode natif (App Remote), il n'y a pas de deviceId — l'App Remote cible
+    // directement l'app Spotify du téléphone. On exige seulement isReady.
+    if (!isReady || (playerMode !== "native" && !deviceId)) {
+      console.log("[playback] skip: player not ready yet", {
+        isReady,
+        deviceId,
+        playerMode,
+      });
       return;
     }
     // En mode local, on attend que l'utilisateur clique "Je suis prêt"
     // avant de lancer la lecture — les browsers bloquent l'autoplay sans
     // gesture utilisateur, et le clic sur le bouton compte comme tel.
-    if (room?.mode === "local_pass" && !passReady) {
-      console.log("[playback] skip: waiting for user 'ready' gesture");
-      return;
+    if (room?.mode === "local_pass") {
+      // Race-condition guard: au changement de joueur actif, le state
+      // `passReady` est reset via queueMicrotask donc en retard d'un render.
+      // On vérifie le ref `lastSeenActiveRef` qui est synchrone — si on n'a
+      // pas encore "vu" ce joueur, l'overlay PassDevice va apparaître et la
+      // lecture doit attendre.
+      if (lastSeenActiveRef.current !== turn.active_player_id) {
+        console.log("[playback] skip: active player just changed");
+        return;
+      }
+      if (!passReady) {
+        console.log("[playback] skip: waiting for user 'ready' gesture");
+        return;
+      }
     }
-    // En online/host: pareil — on exige un geste utilisateur explicite avant
-    // la toute première lecture pour respecter les autoplay policies.
-    if (!audioUnlocked) {
+    // En mode SDK (desktop): on exige un geste utilisateur explicite avant la
+    // toute première lecture pour respecter les autoplay policies du browser.
+    // En mode Connect (iOS): le son sort de l'app Spotify mobile — pas de
+    // contrainte d'autoplay côté browser.
+    if (playerMode === "sdk" && !audioUnlocked) {
       console.log("[playback] skip: waiting for audio unlock gesture");
       return;
     }
@@ -399,6 +428,7 @@ export default function RoomPage({
     passReady,
     audioUnlocked,
     shouldPlayAudio,
+    playerMode,
   ]);
 
   // Retry manuel: déclenché par le bouton "Réessayer" — re-tente la lecture
@@ -892,7 +922,10 @@ export default function RoomPage({
         pseudo={activePlayer.pseudo}
         playerId={activePlayer.player_id}
         cardCount={cardCount}
-        onReady={() => setPassReady(true)}
+        onReady={() => {
+          setPassReady(true);
+          unlockAudio();
+        }}
       />
     );
   }
@@ -926,24 +959,124 @@ export default function RoomPage({
       />
 
       {/* Geste utilisateur requis avant la première lecture (autoplay policy) */}
-      {shouldPlayAudio && !audioUnlocked && product === "premium" && !isLocalMode && (
-        <button
-          type="button"
-          onClick={unlockAudio}
-          className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
-          style={{
-            background: "var(--or)",
-            color: "var(--brun)",
-            padding: "12px 18px",
-            fontSize: 13,
-            letterSpacing: "0.08em",
-            borderTop: "1px solid var(--brun)",
-            borderBottom: "1px solid var(--brun)",
-          }}
-        >
-          🔊 TOUCHE ICI POUR ACTIVER LE SON
-        </button>
-      )}
+      {shouldPlayAudio &&
+        playerMode === "sdk" &&
+        !audioUnlocked &&
+        product === "premium" &&
+        !isLocalMode && (
+          <button
+            type="button"
+            onClick={unlockAudio}
+            className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
+            style={{
+              background: "var(--or)",
+              color: "var(--brun)",
+              padding: "12px 18px",
+              fontSize: 13,
+              letterSpacing: "0.08em",
+              borderTop: "1px solid var(--brun)",
+              borderBottom: "1px solid var(--brun)",
+            }}
+          >
+            🔊 TOUCHE ICI POUR ACTIVER LE SON
+          </button>
+        )}
+
+      {/* iOS / Connect: aucun device dispo → l'utilisateur doit ouvrir Spotify */}
+      {shouldPlayAudio &&
+        playerMode === "connect" &&
+        product === "premium" &&
+        devices.length === 0 && (
+          <div
+            className="w-full flex flex-col gap-2"
+            style={{
+              background: "var(--or)",
+              color: "var(--brun)",
+              padding: "14px 18px",
+              fontSize: 13,
+              lineHeight: 1.4,
+              borderTop: "1px solid var(--brun)",
+              borderBottom: "1px solid var(--brun)",
+            }}
+          >
+            <div className="font-display font-semibold" style={{ fontSize: 15 }}>
+              📱 Ouvre Spotify sur ton iPhone
+            </div>
+            <p style={{ fontSize: 12 }}>
+              Lance n&apos;importe quelle piste pour activer ton device, puis
+              touche « Rafraîchir ».
+            </p>
+            <button
+              type="button"
+              onClick={refreshDevices}
+              className="self-start font-mono font-semibold rounded"
+              style={{
+                background: "var(--brun)",
+                color: "var(--creme)",
+                padding: "6px 14px",
+                fontSize: 12,
+                letterSpacing: "0.08em",
+                marginTop: 4,
+              }}
+            >
+              RAFRAÎCHIR
+            </button>
+          </div>
+        )}
+
+      {/* iOS / Connect: devices dispos → sélecteur si plusieurs */}
+      {shouldPlayAudio &&
+        playerMode === "connect" &&
+        product === "premium" &&
+        devices.length > 0 && (
+          <div
+            className="w-full flex items-center justify-between gap-3"
+            style={{
+              background: "var(--creme-2)",
+              color: "var(--brun)",
+              padding: "10px 18px",
+              fontSize: 12,
+              borderTop: "1px solid var(--creme-3)",
+              borderBottom: "1px solid var(--creme-3)",
+            }}
+          >
+            <span className="font-mono" style={{ letterSpacing: "0.08em" }}>
+              🎧 SON SUR
+            </span>
+            <select
+              value={selectedDeviceId ?? ""}
+              onChange={(e) => selectDevice(e.target.value)}
+              className="flex-1 font-mono"
+              style={{
+                background: "var(--creme)",
+                color: "var(--brun)",
+                border: "1px solid var(--brun)",
+                borderRadius: 4,
+                padding: "4px 8px",
+                fontSize: 12,
+              }}
+            >
+              {devices.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} {d.is_active ? "(actif)" : ""}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={refreshDevices}
+              className="font-mono font-semibold"
+              style={{
+                background: "transparent",
+                color: "var(--brun-mid)",
+                fontSize: 11,
+                letterSpacing: "0.08em",
+              }}
+            >
+              ↻
+            </button>
+          </div>
+        )}
 
       {/* Erreur de lecture / stall — propose un retry */}
       {shouldPlayAudio && audioUnlocked && (playbackStalled || playerError) && (
@@ -1009,7 +1142,7 @@ export default function RoomPage({
                 isYouActive={isActive}
                 phaseChangedAt={turn.phase_changed_at}
                 durationSeconds={
-                  turn.phase === "challenge_window"
+                  turn.phase === "challenge_window" && room.challenges_enabled
                     ? CHALLENGE_WINDOW_SECONDS
                     : TURN_PLAYING_HINT_SECONDS
                 }
@@ -1017,7 +1150,9 @@ export default function RoomPage({
                   turn.phase === "turn_playing"
                     ? "place ta carte"
                     : turn.phase === "challenge_window"
-                      ? "fenêtre de contestation"
+                      ? room.challenges_enabled
+                        ? "fenêtre de contestation"
+                        : "résolution…"
                       : "tour en cours"
                 }
               />
