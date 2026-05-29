@@ -192,16 +192,23 @@
    Safe-area (iOS Capacitor) — env() ne renvoie des marges qu'avec
    viewport-fit=cover (cf. app/layout.tsx).
 --------------------------------------------------------------------------- */
+/* `!important` requis : ces conteneurs définissent leur padding en style inline
+   (`padding: "16px 22px …"`), ce qui écraserait sinon cette règle et annulerait
+   le dégagement de sécurité. Le plancher (68px en haut) garantit que le contenu
+   passe sous la status bar / Dynamic Island même quand env(safe-area-inset-*)
+   renvoie 0 dans la WebView Capacitor ; quand env() fonctionne (iOS récent,
+   viewport-fit=cover), on prend la vraie marge. */
 .safe-top {
-  /* Garantit au moins 50px de dégagement en haut (logo + boutons cliquables)
-     même quand env(safe-area-inset-top) renvoie 0 dans le webview Capacitor. */
   padding-top: max(
-    50px,
-    calc(env(safe-area-inset-top, 0px) + var(--safe-top-base, 0px))
-  );
+    68px,
+    calc(env(safe-area-inset-top, 0px) + var(--safe-top-base, 12px))
+  ) !important;
 }
 .safe-bottom {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--safe-bottom-base, 0px));
+  padding-bottom: max(
+    24px,
+    calc(env(safe-area-inset-bottom, 0px) + var(--safe-bottom-base, 16px))
+  ) !important;
 }
 
 /* ---------------------------------------------------------------------------
