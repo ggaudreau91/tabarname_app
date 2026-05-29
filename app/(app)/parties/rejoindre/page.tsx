@@ -9,6 +9,7 @@ import { VinylDisc } from "@/components/brand/VinylDisc";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { Kicker } from "@/components/brand/Kicker";
 import { Btn } from "@/components/brand/Btn";
+import { Wordmark } from "@/components/brand/Wordmark";
 
 const CODE_LENGTH = 6;
 const ALLOWED = /^[A-Z0-9]$/;
@@ -32,12 +33,7 @@ function timeAgo(date: Date): string {
 function TopBar() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-        <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--wine)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
-        </span>
-        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 18, color: "var(--ink)" }}>Tabarname</span>
-      </div>
+      <Wordmark height={24} />
       <Link
         href="/"
         className="tb-mono"

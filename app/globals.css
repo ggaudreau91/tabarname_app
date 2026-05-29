@@ -193,7 +193,12 @@
    viewport-fit=cover (cf. app/layout.tsx).
 --------------------------------------------------------------------------- */
 .safe-top {
-  padding-top: calc(env(safe-area-inset-top, 0px) + var(--safe-top-base, 0px));
+  /* Garantit au moins 50px de dégagement en haut (logo + boutons cliquables)
+     même quand env(safe-area-inset-top) renvoie 0 dans le webview Capacitor. */
+  padding-top: max(
+    50px,
+    calc(env(safe-area-inset-top, 0px) + var(--safe-top-base, 0px))
+  );
 }
 .safe-bottom {
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + var(--safe-bottom-base, 0px));

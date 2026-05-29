@@ -1,29 +1,7 @@
 import Link from "next/link";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { Kicker } from "@/components/brand/Kicker";
-
-// Wordmark Tabarname avec pastille vinyle.
-function Wordmark({ size = 20 }: { size?: number }) {
-  return (
-    <div className="flex items-center" style={{ gap: 9 }}>
-      <span
-        className="flex items-center justify-center shrink-0 rounded-full"
-        style={{ width: size * 1.05, height: size * 1.05, background: "var(--wine)" }}
-      >
-        <span
-          className="rounded-full"
-          style={{ width: size * 0.26, height: size * 0.26, background: "var(--gold)" }}
-        />
-      </span>
-      <span
-        className="font-display italic font-semibold"
-        style={{ fontSize: size, color: "var(--ink)", letterSpacing: "-0.01em" }}
-      >
-        Tabarname
-      </span>
-    </div>
-  );
-}
+import { Wordmark } from "@/components/brand/Wordmark";
 
 const ARTISTS = [
   "Beau Dommage", "Les Cowboys Fringants", "Harmonium", "Cœur de pirate",
@@ -87,7 +65,7 @@ export default function Home() {
           className="flex items-center justify-between"
           style={{ marginBottom: 26 }}
         >
-          <Wordmark size={20} />
+          <Wordmark height={26} />
           <Link
             href="/compte"
             className="tb-mono"

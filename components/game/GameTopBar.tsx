@@ -1,5 +1,7 @@
 "use client";
 
+import { Wordmark } from "@/components/brand/Wordmark";
+
 type Props = {
   code: string;
   turnNumber: number;
@@ -19,11 +21,8 @@ export function GameTopBar({ code, turnNumber, leaderLabel, leaderCards, onSetti
         ["--safe-top-base" as string]: "12px",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
-        <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--wine)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
-        </span>
-        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 17, color: "var(--panel-ink)" }}>Tabarname</span>
+      <div style={{ minWidth: 0 }}>
+        <Wordmark height={22} />
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         {leaderLabel && (
