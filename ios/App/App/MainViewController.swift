@@ -5,8 +5,9 @@ import Capacitor
 // défini localement dans l'app (SpotifyRemotePlugin) doit être enregistré
 // explicitement ici, sinon le JS reçoit "plugin is not implemented on ios".
 class MainViewController: CAPBridgeViewController {
-    override func capacitorDidLoad() {
+    override open func capacitorDidLoad() {
         super.capacitorDidLoad()
-        bridge?.registerPluginType(SpotifyRemotePlugin.self)
+        NSLog("⚡️ [Tabarname] capacitorDidLoad — enregistrement de SpotifyRemote (bridge=\(bridge != nil))")
+        bridge?.registerPluginInstance(SpotifyRemotePlugin())
     }
 }
