@@ -15,7 +15,6 @@ import { TimelineRail } from "@/components/game/TimelineRail";
 import { OthersStrip } from "@/components/game/OthersStrip";
 import { RevealOverlay } from "@/components/game/RevealOverlay";
 import { PassDeviceOverlay } from "@/components/game/PassDeviceOverlay";
-import { ArrowDown, Flag } from "lucide-react";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { MetaLabel } from "@/components/brand/Stamp";
 import { YearCard } from "@/components/brand/YearCard";
@@ -706,8 +705,8 @@ export default function RoomPage({
     }
     return (
       <main
-        className="min-h-screen flex flex-col items-center justify-center text-center"
-        style={{ background: "var(--creme)", color: "var(--brun)", padding: 24 }}
+        className="tb flex-1 min-h-screen flex flex-col items-center justify-center text-center"
+        style={{ background: "var(--bg-grad)", color: "var(--ink)", padding: 24 }}
       >
         <div className="max-w-md w-full space-y-4">
           <h1
@@ -716,14 +715,15 @@ export default function RoomPage({
           >
             <span className="italic">Salle</span> introuvable
           </h1>
-          <p style={{ color: "var(--brun-mid)" }}>
+          <p style={{ color: "var(--ink-dim)" }}>
             Le code{" "}
             <code
-              className="font-mono"
+              className="tb-mono"
               style={{
-                background: "var(--creme-2)",
+                background: "var(--surface-2)",
                 padding: "2px 8px",
-                borderRadius: 3,
+                borderRadius: 5,
+                color: "var(--ink)",
               }}
             >
               {upperCode}
@@ -734,24 +734,13 @@ export default function RoomPage({
           <div className="flex gap-3 justify-center mt-6">
             <button
               onClick={() => router.push("/parties/rejoindre")}
-              className="inline-flex items-center justify-center font-semibold rounded-md"
-              style={{
-                background: "var(--oxblood)",
-                color: "var(--creme)",
-                padding: "12px 24px",
-              }}
+              className="tb-btn tb-btn--accent"
             >
               Entrer un autre code
             </button>
             <button
               onClick={() => router.push("/")}
-              className="inline-flex items-center justify-center font-semibold rounded-md"
-              style={{
-                background: "transparent",
-                color: "var(--brun)",
-                padding: "12px 24px",
-                border: "1.5px solid var(--brun)",
-              }}
+              className="tb-btn tb-btn--ghost"
             >
               Accueil
             </button>
@@ -767,36 +756,28 @@ export default function RoomPage({
   if (!isMember) {
     return (
       <main
-        className="min-h-screen flex flex-col items-center justify-center"
-        style={{ background: "var(--creme)", color: "var(--brun)", padding: 24 }}
+        className="tb flex-1 min-h-screen flex flex-col items-center justify-center"
+        style={{ background: "var(--bg-grad)", color: "var(--ink)", padding: 24 }}
       >
         <div className="max-w-md w-full text-center space-y-5">
           <div
-            className="font-mono"
-            style={{
-              fontSize: 11,
-              color: "var(--brun-mid)",
-              letterSpacing: "0.18em",
-            }}
+            className="tb-mono"
+            style={{ fontSize: 11, color: "var(--ink-dim)", letterSpacing: "0.18em" }}
           >
             INVITATION
           </div>
           <h1
             className="font-display font-semibold"
-            style={{
-              fontSize: 56,
-              letterSpacing: "-0.03em",
-              lineHeight: 0.95,
-            }}
+            style={{ fontSize: 48, letterSpacing: "-0.03em", lineHeight: 0.95 }}
           >
             <span className="italic">Bienvenue</span> dans la salle
           </h1>
           <div
             className="font-display font-bold"
             style={{
-              fontSize: 64,
+              fontSize: 56,
               letterSpacing: "0.04em",
-              color: "var(--oxblood)",
+              color: "var(--accent)",
               fontVariationSettings: '"opsz" 144',
             }}
           >
@@ -806,19 +787,19 @@ export default function RoomPage({
             const count = publicMeta?.players_count ?? players.length;
             if (count === 0) {
               return (
-                <p style={{ color: "var(--brun-mid)" }}>
+                <p style={{ color: "var(--ink-dim)" }}>
                   Choisis un pseudo pour rejoindre la salle.
                 </p>
               );
             }
             return (
-              <p style={{ color: "var(--brun-mid)" }}>
+              <p style={{ color: "var(--ink-dim)" }}>
                 {count} joueur{count > 1 ? "s" : ""} déjà{" "}
                 {count > 1 ? "présents" : "présent"}
                 {publicMeta?.host_pseudo && (
                   <>
                     {" "}— hôte:{" "}
-                    <span style={{ fontWeight: 600, color: "var(--brun)" }}>
+                    <span style={{ fontWeight: 600, color: "var(--ink)" }}>
                       {publicMeta.host_pseudo}
                     </span>
                   </>
@@ -829,13 +810,7 @@ export default function RoomPage({
           })()}
           <button
             onClick={() => router.push(`/parties/rejoindre?code=${upperCode}`)}
-            className="inline-flex items-center gap-2 font-semibold rounded-md"
-            style={{
-              background: "var(--oxblood)",
-              color: "var(--creme)",
-              padding: "16px 32px",
-              fontSize: 17,
-            }}
+            className="tb-btn tb-btn--accent"
           >
             <span>→</span> Rejoindre la salle
           </button>
@@ -850,16 +825,16 @@ export default function RoomPage({
       (p) => (cardCountByPlayer.get(p.player_id) ?? 0) >= room.win_condition_cards,
     );
     return (
-      <main className="min-h-screen flex flex-col bg-creme">
+      <main className="tb flex-1 min-h-screen flex flex-col" style={{ background: "var(--bg)", color: "var(--ink)" }}>
         <div
-          className="relative overflow-hidden"
-          style={{ background: "var(--brun)", color: "var(--creme)", padding: "60px 24px" }}
+          className="safe-top relative overflow-hidden"
+          style={{ background: "var(--hero-bg)", color: "var(--hero-ink)", padding: "60px 24px" }}
         >
-          <div className="absolute opacity-20" style={{ top: -100, left: -80 }}>
-            <VinylDisc size={360} labelColor="var(--or)" />
+          <div className="absolute opacity-30 pointer-events-none" style={{ top: -100, left: -80 }}>
+            <VinylDisc size={360} spinning />
           </div>
           <div className="relative z-10 max-w-3xl mx-auto text-center">
-            <MetaLabel color="var(--or)">Partie terminée</MetaLabel>
+            <MetaLabel color="var(--accent)">Partie terminée</MetaLabel>
             <h1
               className="font-display font-semibold mt-3"
               style={{
@@ -897,28 +872,11 @@ export default function RoomPage({
               );
             })}
           </div>
-          <div className="mt-12 flex gap-3">
-            <button
-              onClick={() => router.push("/parties/nouvelle")}
-              className="inline-flex items-center justify-center rounded-md font-semibold"
-              style={{
-                background: "var(--oxblood)",
-                color: "var(--creme)",
-                padding: "12px 24px",
-              }}
-            >
+          <div className="safe-bottom mt-12 flex gap-3">
+            <button onClick={() => router.push("/parties/nouvelle")} className="tb-btn tb-btn--accent">
               Rejouer
             </button>
-            <button
-              onClick={() => router.push("/")}
-              className="inline-flex items-center justify-center rounded-md font-semibold"
-              style={{
-                background: "transparent",
-                color: "var(--brun)",
-                padding: "12px 24px",
-                border: "1.5px solid var(--brun)",
-              }}
-            >
+            <button onClick={() => router.push("/")} className="tb-btn tb-btn--ghost">
               Retour à l&apos;accueil
             </button>
           </div>
@@ -988,7 +946,7 @@ export default function RoomPage({
     }));
 
   return (
-    <main className="min-h-screen flex flex-col bg-creme">
+    <main className="tb flex-1 min-h-screen flex flex-col" style={{ background: "var(--bg)", color: "var(--ink)" }}>
       <GameTopBar
         code={room.code}
         turnNumber={turn?.turn_number ?? 0}
@@ -1080,15 +1038,15 @@ export default function RoomPage({
           <div
             className="w-full flex items-center justify-between gap-3"
             style={{
-              background: "var(--creme-2)",
-              color: "var(--brun)",
+              background: "var(--surface-2)",
+              color: "var(--ink)",
               padding: "10px 18px",
               fontSize: 12,
-              borderTop: "1px solid var(--creme-3)",
-              borderBottom: "1px solid var(--creme-3)",
+              borderTop: "1px solid var(--line)",
+              borderBottom: "1px solid var(--line)",
             }}
           >
-            <span className="font-mono" style={{ letterSpacing: "0.08em" }}>
+            <span className="font-mono" style={{ letterSpacing: "0.08em", color: "var(--ink-dim)" }}>
               🎧 SON SUR
             </span>
             <select
@@ -1096,11 +1054,11 @@ export default function RoomPage({
               onChange={(e) => selectDevice(e.target.value)}
               className="flex-1 font-mono"
               style={{
-                background: "var(--creme)",
-                color: "var(--brun)",
-                border: "1px solid var(--brun)",
-                borderRadius: 4,
-                padding: "4px 8px",
+                background: "var(--surface)",
+                color: "var(--ink)",
+                border: "1px solid var(--line-strong)",
+                borderRadius: 8,
+                padding: "6px 8px",
                 fontSize: 12,
               }}
             >
@@ -1134,12 +1092,12 @@ export default function RoomPage({
         <div
           className="w-full flex items-center justify-between gap-3"
           style={{
-            background: "rgba(139,35,49,0.08)",
-            color: "var(--oxblood)",
+            background: "rgba(217,96,110,0.10)",
+            color: "var(--destructive)",
             padding: "10px 18px",
             fontSize: 13,
-            borderTop: "1px solid var(--oxblood)",
-            borderBottom: "1px solid var(--oxblood)",
+            borderTop: "1px solid rgba(217,96,110,0.4)",
+            borderBottom: "1px solid rgba(217,96,110,0.4)",
           }}
         >
           <span className="truncate">
@@ -1151,8 +1109,8 @@ export default function RoomPage({
               onClick={retryPlayback}
               className="font-mono font-semibold rounded"
               style={{
-                background: "var(--oxblood)",
-                color: "var(--creme)",
+                background: "var(--destructive)",
+                color: "#1A0F09",
                 padding: "6px 14px",
                 fontSize: 12,
                 letterSpacing: "0.08em",
@@ -1168,11 +1126,11 @@ export default function RoomPage({
                 className="font-mono font-semibold rounded"
                 style={{
                   background: "transparent",
-                  color: "var(--oxblood)",
+                  color: "var(--destructive)",
                   padding: "6px 14px",
                   fontSize: 12,
                   letterSpacing: "0.08em",
-                  border: "1px solid var(--oxblood)",
+                  border: "1px solid var(--destructive)",
                 }}
               >
                 OUVRIR SPOTIFY
@@ -1231,72 +1189,39 @@ export default function RoomPage({
         />
 
         {isActive && turn?.phase === "turn_playing" && (
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm" style={{ color: "var(--brun-mid)" }}>
-              {selectedSlot !== null
-                ? "Zone choisie · prêt à confirmer"
-                : "Choisis l'emplacement de la carte dans ta timeline."}
-            </div>
+          <button
+            onClick={submitGuess}
+            disabled={selectedSlot === null || submittingAction === "guess"}
+            className="tb-btn tb-btn--accent tb-btn--block"
+          >
+            {selectedSlot !== null ? "Confirmer le placement" : "Choisis un emplacement"}
+          </button>
+        )}
+
+        {challengeMode && turn?.phase === "challenge_window" && (
+          <div className="flex items-center gap-3">
             <button
-              onClick={submitGuess}
-              disabled={selectedSlot === null || submittingAction === "guess"}
-              className="inline-flex items-center gap-2 font-semibold rounded-md disabled:opacity-50"
-              style={{
-                background: "var(--oxblood)",
-                color: "var(--creme)",
-                padding: "12px 22px",
-                fontSize: 15,
+              onClick={() => {
+                setChallengeMode(false);
+                setSelectedSlot(null);
               }}
+              className="tb-btn tb-btn--ghost"
             >
-              <ArrowDown size={16} strokeWidth={2.5} />
-              Confirmer le placement
+              Annuler
+            </button>
+            <button
+              onClick={submitChallenge}
+              disabled={selectedSlot === null || submittingAction === "challenge"}
+              className="tb-btn tb-btn--accent"
+              style={{ flex: 1 }}
+            >
+              <span>⚑</span> Contester
             </button>
           </div>
         )}
 
-        {challengeMode && turn?.phase === "challenge_window" && (
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm" style={{ color: "var(--brun-mid)" }}>
-              {selectedSlot !== null
-                ? "Position de contestation prête."
-                : "Choisis la position où TU placerais la carte."}
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  setChallengeMode(false);
-                  setSelectedSlot(null);
-                }}
-                style={{
-                  background: "transparent",
-                  color: "var(--brun)",
-                  padding: "12px 18px",
-                  fontSize: 14,
-                }}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={submitChallenge}
-                disabled={
-                  selectedSlot === null || submittingAction === "challenge"
-                }
-                className="inline-flex items-center gap-2 font-semibold rounded-md disabled:opacity-50"
-                style={{
-                  background: "var(--oxblood)",
-                  color: "var(--creme)",
-                  padding: "12px 22px",
-                  fontSize: 15,
-                }}
-              >
-                <Flag size={14} strokeWidth={2.5} /> Contester
-              </button>
-            </div>
-          </div>
-        )}
-
         {error && (
-          <p className="text-sm" style={{ color: "var(--oxblood)" }}>
+          <p className="text-sm" style={{ color: "var(--destructive)" }}>
             {error}
           </p>
         )}

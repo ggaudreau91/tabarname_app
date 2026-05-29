@@ -8,13 +8,17 @@ type Props = {
 };
 
 // Avatar cercle avec 2 lettres initiales en Fraunces, étoile or si hôte.
+// Charte "Nuit de vinyle" : teintes froides, anneau sur la surface, encre claire.
 export function PlayerAvatar({
   name,
-  color = "var(--oxblood)",
+  color = "var(--ava-1-bg)",
   size = 44,
   isHost = false,
 }: Props) {
   const initial = (name || "?").slice(0, 2).toUpperCase();
+  // L'or a besoin d'une encre sombre ; les teintes froides prennent de l'encre claire.
+  const isGold = color === "var(--gold)" || color === "var(--accent)";
+  const ink = isGold ? "#16263a" : "var(--ava-1-ink)";
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <div
@@ -23,11 +27,11 @@ export function PlayerAvatar({
           width: size,
           height: size,
           background: color,
-          color: "var(--creme)",
+          color: ink,
           fontSize: size * 0.42,
           letterSpacing: "-0.02em",
-          border: "2px solid var(--creme)",
-          boxShadow: "0 2px 6px rgba(45,27,18,0.18)",
+          border: "2px solid var(--surface)",
+          boxShadow: "0 2px 6px rgba(0,0,0,0.28)",
         }}
       >
         {initial}
@@ -40,27 +44,27 @@ export function PlayerAvatar({
             right: -4,
             width: 18,
             height: 18,
-            background: "var(--or)",
-            border: "2px solid var(--creme)",
-            color: "var(--brun)",
+            background: "var(--panel)",
+            border: "2px solid var(--accent)",
+            color: "var(--accent)",
           }}
         >
-          <Star size={10} fill="var(--brun)" strokeWidth={2.5} />
+          <Star size={10} fill="var(--accent)" strokeWidth={2.5} />
         </div>
       )}
     </div>
   );
 }
 
-// Génère une couleur stable à partir d'un ID joueur (pour assigner des
-// teintes cohérentes aux avatars sans avoir à les stocker en DB).
+// Génère une couleur stable à partir d'un ID joueur (teintes froides cohérentes,
+// sans brun chaud — conforme à la charte "Nuit de vinyle").
 const PALETTE = [
-  "var(--oxblood)",
-  "var(--or)",
-  "var(--green-pret)",
-  "var(--brun)",
-  "var(--oxblood-deep)",
-  "var(--brun-mid)",
+  "var(--ava-1-bg)", // navy steel
+  "var(--gold)",     // or
+  "var(--ava-3-bg)", // teal
+  "var(--ava-4-bg)", // plum
+  "#3A4E6E",         // indigo
+  "#2E5A4A",         // pine
 ];
 
 export function colorForPlayer(playerId: string): string {

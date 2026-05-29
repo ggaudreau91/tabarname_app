@@ -3,17 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeft,
-  Check,
-  Globe,
-  Headphones,
-  Play,
-  Plus,
-  RotateCw,
-  Users,
-  X,
-} from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import {
   useSpotifyPlayer,
@@ -22,7 +11,8 @@ import {
 } from "@/components/spotify/SpotifyPlayerProvider";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
-import { MetaLabel, SpotifyBadge } from "@/components/brand/Stamp";
+import { Btn } from "@/components/brand/Btn";
+import { GlyphIcon } from "@/components/brand/GlyphIcon";
 
 type Playlist = {
   id: string;
@@ -33,13 +23,6 @@ type Playlist = {
   track_count?: number;
 };
 
-const PLAYLIST_COLORS = [
-  "var(--oxblood)",
-  "var(--or)",
-  "var(--green-pret)",
-  "var(--brun)",
-];
-
 const RANDOM_PSEUDO_PARTS = {
   adj: ["Ptit", "Gros", "Vieux", "Bibitte", "Toune", "Gros", "Ti-Cul", "Tabarn"],
   noun: ["Gars", "Mine", "Tabar", "Pit", "Frette", "Boss", "Ouain", "Boucane"],
@@ -47,14 +30,180 @@ const RANDOM_PSEUDO_PARTS = {
 
 function randomPseudo(): string {
   const a =
-    RANDOM_PSEUDO_PARTS.adj[
-      Math.floor(Math.random() * RANDOM_PSEUDO_PARTS.adj.length)
-    ];
+    RANDOM_PSEUDO_PARTS.adj[Math.floor(Math.random() * RANDOM_PSEUDO_PARTS.adj.length)];
   const b =
-    RANDOM_PSEUDO_PARTS.noun[
-      Math.floor(Math.random() * RANDOM_PSEUDO_PARTS.noun.length)
-    ];
+    RANDOM_PSEUDO_PARTS.noun[Math.floor(Math.random() * RANDOM_PSEUDO_PARTS.noun.length)];
   return `${a}${b}`;
+}
+
+// ---- chrome ----
+function TopBar() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <span
+          style={{
+            width: 22, height: 22, borderRadius: "50%", background: "var(--wine)",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
+        </span>
+        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 18, color: "var(--hero-ink)" }}>
+          Tabarname
+        </span>
+      </div>
+      <Link
+        href="/"
+        className="tb-mono"
+        style={{
+          fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-2)",
+          border: "1px solid var(--line-strong)", borderRadius: 999, padding: "7px 13px",
+          background: "transparent", whiteSpace: "nowrap",
+        }}
+      >
+        ← Retour
+      </Link>
+    </div>
+  );
+}
+
+function SectionLabel({
+  n,
+  children,
+  action,
+  href,
+}: {
+  n?: string;
+  children: React.ReactNode;
+  action?: string;
+  href?: string;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "26px 0 12px" }}>
+      <div
+        className="tb-mono"
+        style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-dim)", whiteSpace: "nowrap" }}
+      >
+        {n && <span style={{ color: "var(--accent)" }}>{n} · </span>}
+        {children}
+      </div>
+      {action && href && (
+        <Link href={href} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 500 }}>
+          {action} →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function RadioCard({
+  selected,
+  onClick,
+  icon,
+  title,
+  body,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  icon?: React.ReactNode;
+  title: string;
+  body?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "flex", alignItems: "flex-start", gap: 13, width: "100%", textAlign: "left",
+        padding: "15px 15px", borderRadius: 16, cursor: "pointer",
+        background: selected ? "rgba(210,162,76,0.10)" : "var(--surface)",
+        border: `1.5px solid ${selected ? "var(--accent)" : "var(--line)"}`,
+        transition: "border-color .15s, background .15s",
+      }}
+    >
+      {icon && (
+        <span style={{ color: selected ? "var(--accent)" : "var(--ink-2)", marginTop: 2, flexShrink: 0, display: "flex" }}>
+          {icon}
+        </span>
+      )}
+      <span style={{ flex: 1, minWidth: 0, display: "block" }}>
+        <span className="font-display" style={{ display: "block", fontWeight: 600, fontSize: 18, color: "var(--ink)", lineHeight: 1.2 }}>
+          {title}
+        </span>
+        {body && (
+          <span style={{ display: "block", fontSize: 13, lineHeight: 1.45, color: "var(--ink-2)", marginTop: 5 }}>
+            {body}
+          </span>
+        )}
+      </span>
+      <span
+        style={{
+          width: 20, height: 20, borderRadius: "50%", flexShrink: 0, marginTop: 2,
+          border: `2px solid ${selected ? "var(--accent)" : "var(--line-strong)"}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        {selected && <span style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--accent)" }} />}
+      </span>
+    </button>
+  );
+}
+
+function PlaylistThumb({ size = 46, color }: { size?: number; color?: string }) {
+  return (
+    <div
+      style={{
+        width: size, height: size, borderRadius: 10, flexShrink: 0, overflow: "hidden",
+        position: "relative",
+        background: "linear-gradient(135deg,#2C5C86,#15263a)",
+        boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.08)",
+      }}
+    >
+      <div style={{ position: "absolute", right: -size * 0.26, top: "50%", transform: "translateY(-50%)" }}>
+        <VinylDisc size={size * 0.82} label="" labelColor={color ?? "var(--gold)"} />
+      </div>
+    </div>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+  step = 1,
+  unit,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step?: number;
+  unit?: string;
+}) {
+  const btn: React.CSSProperties = {
+    width: 42, height: 42, borderRadius: 11, border: "1.5px solid var(--line-strong)",
+    background: "transparent", color: "var(--ink)", fontSize: 22, lineHeight: 1, flexShrink: 0,
+    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+  };
+  return (
+    <div className="tb-card" style={{ padding: "14px 16px", background: "var(--surface-2)" }}>
+      <div className="tb-mono" style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-dim)", marginBottom: 10 }}>
+        {label}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <button type="button" onClick={() => onChange(Math.max(min, value - step))} style={btn}>−</button>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 5 }}>
+          <span className="font-display" style={{ fontWeight: 700, fontSize: 30, color: "var(--ink)", lineHeight: 1 }}>{value}</span>
+          {unit && <span className="tb-mono" style={{ fontSize: 13, color: "var(--ink-dim)" }}>{unit}</span>}
+        </div>
+        <button type="button" onClick={() => onChange(Math.min(max, value + step))} style={btn}>+</button>
+      </div>
+    </div>
+  );
 }
 
 export default function NewPartyPage() {
@@ -64,9 +213,7 @@ export default function NewPartyPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">(
-    "online_premium",
-  );
+  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">("online_premium");
   const [importInput, setImportInput] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -82,9 +229,6 @@ export default function NewPartyPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Détection iOS/mobile: on garde le flag pour afficher un nudge UX, mais
-    // on ne force plus host_audio — le mode Connect permet de jouer en
-    // online_premium tant que l'app Spotify mobile est ouverte.
     if (!isLikelySdkUnsupported()) return;
     queueMicrotask(() => setIsMobile(true));
   }, []);
@@ -100,7 +244,6 @@ export default function NewPartyPage() {
         .eq("is_active", true)
         .order("name");
       const lists = (data ?? []) as Playlist[];
-
       const counts = await Promise.all(
         lists.map(async (pl) => {
           const { count } = await supabase
@@ -116,9 +259,7 @@ export default function NewPartyPage() {
     })();
   }, [supabase]);
 
-  const validLocalPseudos = localPlayers
-    .map((p) => p.trim())
-    .filter((p) => p.length > 0);
+  const validLocalPseudos = localPlayers.map((p) => p.trim()).filter((p) => p.length > 0);
 
   const canSubmit = (() => {
     if (!playlistId || submitting) return false;
@@ -127,8 +268,8 @@ export default function NewPartyPage() {
     return pseudo.trim().length > 0;
   })();
 
-  async function onImportPlaylist(e: React.FormEvent) {
-    e.preventDefault();
+  async function onImportPlaylist(e?: React.FormEvent) {
+    e?.preventDefault();
     if (!importInput.trim()) return;
     setImporting(true);
     setImportError(null);
@@ -153,7 +294,6 @@ export default function NewPartyPage() {
                   : data.detail ?? data.error ?? "Import échoué.";
         throw new Error(msg);
       }
-      // Refresh: recharge la liste, sélectionne la nouvelle.
       const { data: lists } = await supabase
         .from("curated_playlists")
         .select("id, slug, name, description, cover_url")
@@ -172,9 +312,7 @@ export default function NewPartyPage() {
       const map = new Map(counts.map((c) => [c.id, c.count]));
       setPlaylists(enriched.map((p) => ({ ...p, track_count: map.get(p.id) ?? 0 })));
       setPlaylistId(data.playlistRowId);
-      setImportSuccess(
-        `✓ « ${data.playlistName} » importée — ${data.importedCount} pistes prêtes.`,
-      );
+      setImportSuccess(`✓ « ${data.playlistName} » importée — ${data.importedCount} pistes prêtes.`);
       setImportInput("");
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "erreur");
@@ -232,476 +370,171 @@ export default function NewPartyPage() {
     setLocalPlayers((prev) => (prev.length < 8 ? [...prev, ""] : prev));
   }
   function removeLocalPlayer(i: number) {
-    setLocalPlayers((prev) =>
-      prev.length > 2 ? prev.filter((_, idx) => idx !== i) : prev,
-    );
+    setLocalPlayers((prev) => (prev.length > 2 ? prev.filter((_, idx) => idx !== i) : prev));
   }
 
+  const localAvaColors = ["var(--ava-1-bg)", "var(--gold)", "var(--ava-3-bg)", "var(--ava-4-bg)", "#3A4E6E", "#2E5A4A", "#5A3E5C", "#2C6E6A"];
+
   return (
-    <main
-      className="grid lg:grid-cols-[1fr_1.2fr] min-h-screen"
-      style={{ background: "var(--creme)", color: "var(--brun)" }}
-    >
-      {/* LEFT — masthead */}
-      <div
-        className="relative overflow-hidden flex flex-col px-5 py-8 sm:px-10 sm:py-10 lg:px-12"
-        style={{
-          background: "var(--brun)",
-          color: "var(--creme)",
-          minHeight: "min(36vh, 360px)",
-          paddingTop: "calc(env(safe-area-inset-top, 0px) + 2rem)",
-        }}
-      >
-        <div className="absolute opacity-50" style={{ top: 60, right: -160 }}>
-          <VinylDisc size={420} labelColor="var(--oxblood)" />
+    <main className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg)", color: "var(--ink)", display: "flex", flexDirection: "column" }}>
+      {/* hero */}
+      <div className="safe-top" style={{ background: "var(--hero-bg)", color: "var(--hero-ink)", padding: "16px 22px 26px", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", right: -80, top: -30, opacity: 0.4, pointerEvents: "none" }}>
+          <VinylDisc size={230} spinning />
         </div>
-        <div
-          className="absolute opacity-20"
-          style={{ bottom: -120, left: -80 }}
-        >
-          <VinylDisc size={300} labelColor="var(--or)" />
-        </div>
-
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div
-              className="relative flex items-center justify-center rounded-full"
-              style={{
-                width: 28,
-                height: 28,
-                background: "var(--creme)",
-              }}
-            >
-              <div
-                className="rounded-full"
-                style={{
-                  width: 10,
-                  height: 10,
-                  background: "var(--oxblood)",
-                }}
-              />
-            </div>
-            <div
-              className="font-display italic font-bold"
-              style={{ fontSize: 20 }}
-            >
-              Tabarname
-            </div>
+        <div style={{ position: "relative" }}>
+          <TopBar />
+          <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--accent)", margin: "20px 0 10px" }}>
+            Étape 1 sur 1 · Côté A
           </div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 font-mono"
-            style={{
-              background: "transparent",
-              color: "var(--creme)",
-              border: "1px solid rgba(250,246,240,0.3)",
-              padding: "6px 12px",
-              borderRadius: 4,
-              fontSize: 12,
-              letterSpacing: "0.1em",
-            }}
-          >
-            <ArrowLeft size={12} strokeWidth={2.5} /> RETOUR
-          </Link>
-        </div>
-
-        <div className="flex-1" />
-
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-5">
-            <div
-              style={{ width: 40, height: 1, background: "var(--or)" }}
-            />
-            <MetaLabel color="var(--or)">Étape 1 sur 1 · Côté A</MetaLabel>
-          </div>
-          <h1
-            className="font-display font-semibold"
-            style={{
-              fontSize: "clamp(48px, 9vw, 96px)",
-              lineHeight: 0.92,
-              letterSpacing: "-0.035em",
-              fontVariationSettings: '"opsz" 144',
-            }}
-          >
-            <span className="italic">Nouvelle</span>
+          <h1 className="font-display italic" style={{ fontWeight: 700, fontSize: 44, lineHeight: 0.98, letterSpacing: "-0.02em", color: "var(--hero-ink)" }}>
+            Nouvelle
             <br />
             partie.
           </h1>
-          <p
-            className="mt-6"
-            style={{
-              fontSize: 17,
-              lineHeight: 1.55,
-              color: "rgba(250,246,240,0.7)",
-              maxWidth: 380,
-            }}
-          >
-            Choisis la playlist, règle la partie, partage le code à ta gang.
-            Ça prend moins de 30 secondes.
+          <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--panel-dim)", marginTop: 14, maxWidth: 320 }}>
+            Choisis la playlist, règle la partie, partage le code à ta gang. Ça prend moins de 30 secondes.
           </p>
-
-          <div
-            className="mt-9 flex gap-8 pt-6"
-            style={{ borderTop: "1px solid rgba(250,246,240,0.12)" }}
-          >
-            <div>
-              <div
-                className="font-display font-bold"
-                style={{
-                  fontSize: 32,
-                  color: "var(--or)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                2-8
+          <div style={{ display: "flex", gap: 8, marginTop: 22, borderTop: "1px solid var(--panel-line)", paddingTop: 20 }}>
+            {([["2-8", "Joueurs"], ["~30", "Min. moyenne"], [String(winCards), "Cartes pour gagner"]] as const).map(([v, l], i) => (
+              <div key={i} style={{ flex: 1 }}>
+                <div className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--accent)", lineHeight: 1 }}>{v}</div>
+                <div className="tb-mono" style={{ fontSize: 9.5, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--panel-dim)", marginTop: 7, lineHeight: 1.3 }}>{l}</div>
               </div>
-              <div
-                className="mt-0.5 font-mono"
-                style={{
-                  fontSize: 11,
-                  color: "rgba(250,246,240,0.5)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                JOUEURS
-              </div>
-            </div>
-            <div>
-              <div
-                className="font-display font-bold"
-                style={{
-                  fontSize: 32,
-                  color: "var(--or)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                ~30
-                <span style={{ fontSize: 18 }}>min</span>
-              </div>
-              <div
-                className="mt-0.5 font-mono"
-                style={{
-                  fontSize: 11,
-                  color: "rgba(250,246,240,0.5)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                DURÉE MOYENNE
-              </div>
-            </div>
-            <div>
-              <div
-                className="font-display font-bold"
-                style={{
-                  fontSize: 32,
-                  color: "var(--or)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {winCards}
-              </div>
-              <div
-                className="mt-0.5 font-mono"
-                style={{
-                  fontSize: 11,
-                  color: "rgba(250,246,240,0.5)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                CARTES POUR GAGNER
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* RIGHT — form */}
-      <form
-        onSubmit={onSubmit}
-        className="flex flex-col overflow-auto px-5 py-8 sm:px-8 sm:py-10"
-      >
-        {/* 01 Pseudo / Joueurs locaux */}
-        {mode === "local_pass" ? (
-          <div>
-            <div className="flex items-baseline justify-between mb-2.5">
-              <MetaLabel>
-                01 · Joueurs ({validLocalPseudos.length}/{localPlayers.length})
-              </MetaLabel>
-              <div
-                className="italic"
-                style={{ fontSize: 11, color: "var(--brun-mid)" }}
-              >
-                2 à 8 joueurs · vous passerez l&apos;appareil
-              </div>
-            </div>
-            <div className="space-y-2">
-              {localPlayers.map((p, i) => (
-                <div key={i} className="flex gap-2.5 items-stretch">
-                  <div
-                    className="flex items-center justify-center font-mono shrink-0"
+      {/* body */}
+      <form onSubmit={onSubmit} style={{ display: "flex", flexDirection: "column", flex: 1 }}>
+        <div style={{ padding: "2px 22px 0" }}>
+          {/* 01 pseudo / local players */}
+          {mode === "local_pass" ? (
+            <>
+              <SectionLabel n="01">Joueurs ({validLocalPseudos.length}/{localPlayers.length})</SectionLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {localPlayers.map((p, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <PlayerAvatar name={p || "?"} color={localAvaColors[i % localAvaColors.length]} size={48} />
+                    <input
+                      value={p}
+                      onChange={(e) => updateLocalPlayer(i, e.target.value)}
+                      placeholder={`Joueur ${i + 1}`}
+                      className="tb-input"
+                      style={{ flex: 1 }}
+                    />
+                    {localPlayers.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeLocalPlayer(i)}
+                        aria-label={`Retirer le joueur ${i + 1}`}
+                        style={{
+                          width: 42, height: 42, flexShrink: 0, borderRadius: 11,
+                          border: "1.5px solid var(--line-strong)", background: "transparent",
+                          color: "var(--ink-dim)", cursor: "pointer", fontSize: 16,
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {localPlayers.length < 8 && (
+                  <button
+                    type="button"
+                    onClick={addLocalPlayer}
+                    className="tb-mono"
                     style={{
-                      width: 36,
-                      height: 56,
-                      color: "var(--brun-mid)",
-                      fontSize: 12,
-                      letterSpacing: "0.05em",
+                      width: "100%", padding: 14, borderRadius: 14, border: "1.5px dashed var(--line-strong)",
+                      background: "transparent", color: "var(--ink-2)", fontSize: 12, letterSpacing: "0.08em",
+                      textTransform: "uppercase", cursor: "pointer",
                     }}
                   >
-                    {String(i + 1).padStart(2, "0")}
-                  </div>
-                  <PlayerAvatar
-                    name={p || "?"}
-                    color={
-                      [
-                        "var(--oxblood)",
-                        "var(--or)",
-                        "var(--green-pret)",
-                        "var(--brun)",
-                        "var(--oxblood-deep)",
-                        "var(--brun-mid)",
-                        "var(--or-deep)",
-                        "var(--brun-2)",
-                      ][i % 8]
-                    }
-                    size={56}
-                  />
-                  <input
-                    value={p}
-                    onChange={(e) => updateLocalPlayer(i, e.target.value)}
-                    placeholder={`Joueur ${i + 1}`}
-                    className="flex-1 font-display font-semibold outline-none"
-                    style={{
-                      padding: "14px 18px",
-                      background: "var(--creme)",
-                      border: "1.5px solid var(--brun)",
-                      borderRadius: 8,
-                      fontSize: 22,
-                      color: "var(--brun)",
-                      letterSpacing: "-0.01em",
-                    }}
-                  />
-                  {localPlayers.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => removeLocalPlayer(i)}
-                      aria-label={`Retirer le joueur ${i + 1}`}
-                      className="flex items-center justify-center"
-                      style={{
-                        padding: "0 14px",
-                        background: "transparent",
-                        border: "1.5px solid var(--creme-3)",
-                        borderRadius: 8,
-                        color: "var(--brun-mid)",
-                      }}
-                    >
-                      <X size={16} strokeWidth={2.5} />
-                    </button>
-                  )}
-                </div>
-              ))}
-              {localPlayers.length < 8 && (
+                    + Ajouter un joueur
+                  </button>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              <SectionLabel n="01">
+                Ton pseudo{" "}
+                <span style={{ color: "var(--ink-dim)", fontStyle: "italic", textTransform: "none", letterSpacing: 0, fontFamily: "var(--ff-body)" }}>
+                  · 16 max
+                </span>
+              </SectionLabel>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <PlayerAvatar name={pseudo || "Toi"} color={selfId ? colorForPlayer(selfId) : "var(--ava-1-bg)"} size={52} />
+                <input
+                  value={pseudo}
+                  maxLength={16}
+                  onChange={(e) => setPseudo(e.target.value.slice(0, 16))}
+                  placeholder="ex. PtitGars"
+                  className="tb-input"
+                  style={{ flex: 1 }}
+                />
                 <button
                   type="button"
-                  onClick={addLocalPlayer}
-                  className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
+                  onClick={() => setPseudo(randomPseudo())}
+                  className="tb-mono"
+                  aria-label="Pseudo aléatoire"
                   style={{
-                    padding: "14px",
-                    background: "var(--creme-2)",
-                    border: "1.5px dashed var(--creme-3)",
-                    borderRadius: 8,
-                    fontSize: 13,
-                    color: "var(--brun-mid)",
-                    letterSpacing: "0.1em",
+                    flexShrink: 0, height: 52, padding: "0 14px", borderRadius: 12,
+                    border: "1.5px solid var(--line-strong)", background: "transparent",
+                    color: "var(--ink-2)", fontSize: 12, letterSpacing: "0.08em", cursor: "pointer",
                   }}
                 >
-                  <Plus size={14} strokeWidth={2.5} />
-                  AJOUTER UN JOUEUR
+                  ↻
                 </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-baseline justify-between mb-2.5">
-              <MetaLabel>01 · Ton pseudo</MetaLabel>
-              <div
-                className="italic"
-                style={{ fontSize: 11, color: "var(--brun-mid)" }}
-              >
-                16 caractères max
               </div>
-            </div>
-            <div className="flex gap-2.5 items-stretch">
-              <PlayerAvatar
-                name={pseudo || "Toi"}
-                color={selfId ? colorForPlayer(selfId) : "var(--oxblood)"}
-                size={56}
-              />
-              <input
-                value={pseudo}
-                onChange={(e) => setPseudo(e.target.value.slice(0, 16))}
-                placeholder="ex. PtitGars"
-                className="flex-1 font-display font-semibold outline-none"
-                style={{
-                  padding: "14px 18px",
-                  background: "var(--creme)",
-                  border: "1.5px solid var(--brun)",
-                  borderRadius: 8,
-                  fontSize: 24,
-                  color: "var(--brun)",
-                  letterSpacing: "-0.01em",
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setPseudo(randomPseudo())}
-                className="inline-flex items-center gap-1.5 font-mono font-semibold"
-                style={{
-                  padding: "0 18px",
-                  background: "var(--creme-2)",
-                  border: "1.5px solid var(--creme-3)",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  color: "var(--brun)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                <RotateCw size={12} strokeWidth={2.5} /> RANDOM
-              </button>
-            </div>
-          </div>
-        )}
+            </>
+          )}
 
-        {/* 02 Playlist */}
-        <div className="mt-7">
-          <div className="flex items-baseline justify-between mb-3">
-            <MetaLabel>02 · Playlist</MetaLabel>
-            <Link
-              href="/admin/playlists"
-              style={{
-                fontSize: 12,
-                color: "var(--oxblood)",
-                fontWeight: 500,
-              }}
-            >
-              Importer une playlist →
-            </Link>
-          </div>
+          {/* 02 playlist */}
+          <SectionLabel n="02" action="Importer une playlist" href="/admin/playlists">Playlist</SectionLabel>
           {playlists.length === 0 ? (
             <div
-              className="rounded-md italic"
-              style={{
-                padding: 16,
-                background: "var(--creme-2)",
-                border: "1.5px dashed var(--creme-3)",
-                fontSize: 14,
-                color: "var(--brun-mid)",
-              }}
+              className="font-display italic"
+              style={{ padding: 16, borderRadius: 14, background: "var(--surface-2)", border: "1.5px dashed var(--line-strong)", fontSize: 14, color: "var(--ink-dim)" }}
             >
-              Aucune playlist active pour l&apos;instant — importes-en une depuis
-              Spotify ci-dessous.
+              Aucune playlist active — importes-en une depuis Spotify ci-dessous.
             </div>
           ) : (
-            <div className="grid sm:grid-cols-2 gap-2.5">
-              {playlists.map((p, i) => {
-                const selected = p.id === playlistId;
-                const color = PLAYLIST_COLORS[i % PLAYLIST_COLORS.length];
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setPlaylistId(p.id)}
-                    className="relative flex items-center gap-3 text-left"
-                    style={{
-                      padding: "14px 16px",
-                      background: selected
-                        ? "rgba(139,35,49,0.06)"
-                        : "var(--creme)",
-                      border: `1.5px solid ${selected ? "var(--oxblood)" : "var(--creme-3)"}`,
-                      borderRadius: 8,
-                    }}
-                  >
-                    <div className="shrink-0">
-                      <VinylDisc size={48} labelColor={color} label="LP" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="font-display font-semibold truncate"
-                        style={{ fontSize: 16, letterSpacing: "-0.01em" }}
-                      >
-                        {p.name}
-                      </div>
-                      <div
-                        className="mt-0.5 font-mono"
-                        style={{
-                          fontSize: 11,
-                          color: "var(--brun-mid)",
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        {p.track_count ?? "?"} pistes
-                      </div>
-                    </div>
-                    {selected && (
-                      <div
-                        className="absolute flex items-center justify-center rounded-full"
-                        style={{
-                          top: 10,
-                          right: 10,
-                          width: 18,
-                          height: 18,
-                          background: "var(--oxblood)",
-                          color: "var(--creme)",
-                        }}
-                      >
-                        <Check size={11} strokeWidth={3} />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {playlists.map((p) => (
+                <RadioCard
+                  key={p.id}
+                  selected={p.id === playlistId}
+                  onClick={() => setPlaylistId(p.id)}
+                  icon={<PlaylistThumb />}
+                  title={p.name}
+                  body={`${p.track_count ?? "?"} pistes`}
+                />
+              ))}
             </div>
           )}
 
-          {/* Import inline d'une playlist Spotify publique */}
-          <div className="mt-3">
+          {/* import inline */}
+          <div style={{ marginTop: 10 }}>
             {!importOpen ? (
               <button
                 type="button"
                 onClick={() => setImportOpen(true)}
-                className="w-full inline-flex items-center justify-center gap-2 font-mono font-semibold"
+                className="tb-mono"
                 style={{
-                  padding: "12px",
-                  background: "var(--creme-2)",
-                  border: "1.5px dashed var(--creme-3)",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  color: "var(--brun-mid)",
-                  letterSpacing: "0.1em",
+                  width: "100%", padding: 14, borderRadius: 14, border: "1.5px dashed var(--line-strong)",
+                  background: "transparent", color: "var(--ink-2)", fontSize: 12, letterSpacing: "0.08em",
+                  textTransform: "uppercase", cursor: "pointer",
                 }}
               >
-                <Plus size={14} strokeWidth={2.5} />
-                AJOUTER UNE PLAYLIST SPOTIFY
+                + Ajouter une playlist Spotify
               </button>
             ) : (
-              <div
-                className="rounded-lg"
-                style={{
-                  padding: 14,
-                  background: "var(--creme-2)",
-                  border: "1.5px solid var(--creme-3)",
-                }}
-              >
-                <div className="flex items-baseline justify-between mb-2">
-                  <div
-                    className="font-mono"
-                    style={{
-                      fontSize: 11,
-                      color: "var(--brun-mid)",
-                      letterSpacing: "0.1em",
-                    }}
-                  >
-                    IMPORTER DEPUIS SPOTIFY
+              <div className="tb-card" style={{ padding: 14, background: "var(--surface-2)" }}>
+                <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.1em", color: "var(--ink-dim)", textTransform: "uppercase" }}>
+                    Importer depuis Spotify
                   </div>
                   <button
                     type="button"
@@ -711,426 +544,127 @@ export default function NewPartyPage() {
                       setImportSuccess(null);
                       setImportInput("");
                     }}
-                    style={{
-                      fontSize: 11,
-                      color: "var(--brun-mid)",
-                    }}
+                    style={{ fontSize: 11, color: "var(--ink-dim)", background: "transparent", border: "none", cursor: "pointer" }}
                   >
                     Fermer
                   </button>
                 </div>
-                <div className="flex gap-2">
+                <div style={{ display: "flex", gap: 8 }}>
                   <input
                     value={importInput}
                     onChange={(e) => setImportInput(e.target.value)}
-                    placeholder="Lien Spotify (open.spotify.com/playlist/...)"
-                    className="flex-1 font-mono outline-none"
+                    placeholder="open.spotify.com/playlist/…"
+                    className="tb-mono"
                     style={{
-                      padding: "10px 12px",
-                      background: "var(--creme)",
-                      border: "1.5px solid var(--brun)",
-                      borderRadius: 6,
-                      fontSize: 13,
-                      color: "var(--brun)",
+                      flex: 1, minWidth: 0, padding: "11px 12px", borderRadius: 10,
+                      background: "var(--surface)", border: "1.5px solid var(--line-strong)",
+                      color: "var(--ink)", fontSize: 13, outline: "none",
                     }}
                   />
                   <button
                     type="button"
                     onClick={onImportPlaylist}
                     disabled={importing || !importInput.trim() || product !== "premium"}
-                    className="font-mono font-semibold rounded disabled:opacity-50"
-                    style={{
-                      background: "var(--brun)",
-                      color: "var(--creme)",
-                      padding: "10px 16px",
-                      fontSize: 12,
-                      letterSpacing: "0.1em",
-                    }}
+                    className="tb-btn tb-btn--wine"
+                    style={{ padding: "11px 16px", fontSize: 13, borderRadius: 10, opacity: importing || !importInput.trim() || product !== "premium" ? 0.5 : 1 }}
                   >
-                    {importing ? "IMPORT…" : "IMPORTER"}
+                    {importing ? "Import…" : "Importer"}
                   </button>
                 </div>
                 {product !== "premium" && (
-                  <p
-                    className="mt-2"
-                    style={{ fontSize: 11, color: "var(--brun-mid)" }}
-                  >
-                    Spotify Premium requis pour importer une playlist.
-                  </p>
+                  <p style={{ marginTop: 8, fontSize: 11, color: "var(--ink-dim)" }}>Spotify Premium requis pour importer une playlist.</p>
                 )}
-                {importError && (
-                  <p
-                    className="mt-2"
-                    style={{ fontSize: 12, color: "var(--oxblood)" }}
-                  >
-                    {importError}
-                  </p>
-                )}
-                {importSuccess && (
-                  <p
-                    className="mt-2"
-                    style={{ fontSize: 12, color: "var(--green-pret)" }}
-                  >
-                    {importSuccess}
-                  </p>
-                )}
+                {importError && <p style={{ marginTop: 8, fontSize: 12, color: "var(--destructive)" }}>{importError}</p>}
+                {importSuccess && <p style={{ marginTop: 8, fontSize: 12, color: "var(--spotify)" }}>{importSuccess}</p>}
               </div>
             )}
           </div>
-        </div>
 
-        {/* 03 Mode */}
-        <div className="mt-7">
-          <MetaLabel>03 · Mode de jeu</MetaLabel>
+          {/* 03 mode */}
+          <SectionLabel n="03">Mode de jeu</SectionLabel>
           {isMobile && mode === "online_premium" && (
-            <div
-              className="mt-2 rounded-md"
-              style={{
-                padding: "10px 14px",
-                background: "rgba(212,166,86,0.12)",
-                border: "1px solid var(--or)",
-                fontSize: 12,
-                color: "var(--brun)",
-                lineHeight: 1.45,
-              }}
-            >
-              📱 Sur iPhone, le son sortira de ton <strong>app Spotify
-              mobile</strong> (Connect). Garde-la ouverte en arrière-plan
-              pendant la partie.
+            <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 14, background: "rgba(210,162,76,0.12)", border: "1px solid var(--line)", marginBottom: 12 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", marginTop: 6, flexShrink: 0 }} />
+              <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--ink-2)" }}>
+                Sur iPhone, le son sort de ton <b style={{ color: "var(--ink)" }}>app Spotify</b> (Connect). Garde-la ouverte en arrière-plan pendant la partie.
+              </p>
             </div>
           )}
-          <div className="mt-3 grid sm:grid-cols-3 gap-2.5">
-            {(
-              [
-                {
-                  m: "online_premium" as const,
-                  Icon: Globe,
-                  title: "En ligne",
-                  body:
-                    "Chacun joue sur son appareil. Chaque joueur a besoin de Premium.",
-                },
-                {
-                  m: "host_audio" as const,
-                  Icon: Headphones,
-                  title: "Audio chez l'hôte",
-                  body:
-                    "Plusieurs appareils, audio sur celui de l'hôte. Un Premium suffit.",
-                },
-                {
-                  m: "local_pass" as const,
-                  Icon: Users,
-                  title: "Autour d'une table",
-                  body:
-                    "Un seul appareil qu'on se passe. Idéal pour les apéros, party de cuisine.",
-                },
-              ]
-            ).map(({ m, Icon, title, body }) => {
-              const selected = m === mode;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setMode(m)}
-                  className="relative text-left"
-                  style={{
-                    padding: 18,
-                    background: selected
-                      ? "rgba(139,35,49,0.06)"
-                      : "var(--creme)",
-                    border: `1.5px solid ${selected ? "var(--oxblood)" : "var(--creme-3)"}`,
-                    borderRadius: 8,
-                  }}
-                >
-                  <div
-                    className="absolute rounded-full flex items-center justify-center"
-                    style={{
-                      top: 12,
-                      right: 12,
-                      width: 16,
-                      height: 16,
-                      background: selected ? "var(--oxblood)" : "transparent",
-                      border: `1.5px solid ${selected ? "var(--oxblood)" : "var(--creme-3)"}`,
-                    }}
-                  >
-                    {selected && (
-                      <div
-                        className="rounded-full"
-                        style={{
-                          width: 6,
-                          height: 6,
-                          background: "var(--creme)",
-                        }}
-                      />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2.5 mb-2">
-                    <Icon size={20} strokeWidth={1.75} color="var(--brun)" />
-                    <div
-                      className="font-display font-semibold"
-                      style={{ fontSize: 18, letterSpacing: "-0.01em" }}
-                    >
-                      {title}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--brun-2)",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    {body}
-                  </div>
-                </button>
-              );
-            })}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <RadioCard
+              selected={mode === "online_premium"}
+              onClick={() => setMode("online_premium")}
+              icon={<GlyphIcon kind="globe" />}
+              title="En ligne"
+              body="Chacun joue sur son appareil. Chaque joueur a besoin de Premium."
+            />
+            <RadioCard
+              selected={mode === "host_audio"}
+              onClick={() => setMode("host_audio")}
+              icon={<GlyphIcon kind="headphones" />}
+              title="Audio chez l'hôte"
+              body="Plusieurs appareils, audio sur celui de l'hôte. Un Premium suffit."
+            />
+            <RadioCard
+              selected={mode === "local_pass"}
+              onClick={() => setMode("local_pass")}
+              icon={<GlyphIcon kind="table" />}
+              title="Autour d'une table"
+              body="Un seul appareil qu'on se passe. Idéal pour les apéros, party de cuisine."
+            />
           </div>
+
+          {/* 04 réglages */}
+          <SectionLabel n="04">Réglages</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <Stepper label="Cartes à gagner" value={winCards} onChange={setWinCards} min={3} max={20} />
+            <Stepper label="Temps par tour" value={turnSeconds} onChange={setTurnSeconds} min={15} max={120} step={5} unit="sec" />
+            {mode !== "local_pass" && (
+              <div className="tb-card" style={{ padding: "14px 16px", background: "var(--surface-2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <div className="tb-mono" style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-dim)" }}>Contestations</div>
+                <div className="tb-seg">
+                  <button type="button" aria-pressed={challengesEnabled} onClick={() => setChallengesEnabled(true)}>Permises</button>
+                  <button type="button" aria-pressed={!challengesEnabled} onClick={() => setChallengesEnabled(false)}>Off</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* connect spotify / premium gate */}
+          {product !== "premium" && (
+            <div className="tb-card" style={{ padding: "18px 18px", marginTop: 18, border: "1.5px solid rgba(29,185,84,0.4)", background: "rgba(29,185,84,0.07)" }}>
+              <div className="font-display" style={{ fontWeight: 600, fontSize: 19, color: "var(--ink)" }}>
+                {product === null ? "Connecte Spotify" : "Compte Premium requis"}
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.5, color: "var(--ink-2)", margin: "6px 0 14px" }}>
+                En tant qu&apos;hôte, c&apos;est toi qui lances la musique — un compte Premium est nécessaire, peu importe le mode.
+              </p>
+              <Btn kind="spotify" icon={<GlyphIcon kind="spotify" size={18} color="#06210F" />} onClick={() => connectSpotify("/parties/nouvelle")}>
+                Se connecter avec Spotify
+              </Btn>
+            </div>
+          )}
+
+          {error && <p style={{ marginTop: 16, fontSize: 14, color: "var(--destructive)" }}>{error}</p>}
         </div>
 
-        {/* 04 Réglages */}
-        <div className="mt-7">
-          <MetaLabel>04 · Réglages</MetaLabel>
-          <div className="mt-3 grid sm:grid-cols-3 gap-2.5">
-            <Stepper
-              label="CARTES À GAGNER"
-              value={winCards}
-              onChange={setWinCards}
-              min={3}
-              max={20}
-            />
-            <Stepper
-              label="TEMPS PAR TOUR"
-              value={turnSeconds}
-              onChange={setTurnSeconds}
-              min={15}
-              max={120}
-              step={5}
-              suffix="sec"
-            />
-            <div
-              className="rounded-lg"
-              style={{
-                padding: "14px 16px",
-                background: "var(--creme-2)",
-                border: "1px solid var(--creme-3)",
-              }}
-            >
-              <div
-                className="font-mono"
-                style={{
-                  fontSize: 11,
-                  color: "var(--brun-mid)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                CONTESTATIONS
-              </div>
-              <div
-                className="flex items-center mt-2 gap-1.5 rounded p-0.5"
-                style={{ background: "var(--creme-3)" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setChallengesEnabled(true)}
-                  className="flex-1 text-center font-semibold rounded transition"
-                  style={{
-                    padding: "6px 0",
-                    background: challengesEnabled ? "var(--brun)" : "transparent",
-                    color: challengesEnabled ? "var(--creme)" : "var(--brun-mid)",
-                    fontSize: 13,
-                  }}
-                >
-                  Permises
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setChallengesEnabled(false)}
-                  className="flex-1 text-center font-semibold rounded transition"
-                  style={{
-                    padding: "6px 0",
-                    background: !challengesEnabled ? "var(--brun)" : "transparent",
-                    color: !challengesEnabled ? "var(--creme)" : "var(--brun-mid)",
-                    fontSize: 13,
-                  }}
-                >
-                  Off
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <div style={{ flex: 1, minHeight: 8 }} />
 
-        {/* Premium gate */}
-        {product !== "premium" && (
-          <div
-            className="mt-6 rounded-lg"
-            style={{
-              padding: 16,
-              border: "1.5px solid var(--or)",
-              background: "rgba(212,166,86,0.08)",
-            }}
-          >
-            <div
-              className="font-display font-semibold mb-1"
-              style={{ fontSize: 16 }}
-            >
-              {product === null
-                ? "Connecte Spotify"
-                : "Compte Premium requis"}
-            </div>
-            <p
-              className="mb-3"
-              style={{ fontSize: 13, color: "var(--brun-2)" }}
-            >
-              En tant qu&apos;hôte, c&apos;est toi qui lances la musique — un
-              compte Spotify Premium est nécessaire, peu importe le mode.
-            </p>
-            <button
-              type="button"
-              onClick={() => connectSpotify("/parties/nouvelle")}
-              className="inline-flex items-center justify-center rounded-md font-semibold"
-              style={{
-                background: "var(--green-spotify)",
-                color: "var(--nuit)",
-                padding: "10px 18px",
-                fontSize: 13,
-              }}
-            >
-              Se connecter avec Spotify
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <p className="mt-4 text-sm" style={{ color: "var(--oxblood)" }}>
-            {error}
-          </p>
-        )}
-
-        <div className="flex-1 min-h-8" />
-
-        <div className="mt-8 flex items-center gap-4 flex-wrap">
-          <button
-            type="submit"
-            disabled={!canSubmit}
-            className="flex-1 flex items-center justify-center gap-2.5 font-semibold rounded-md disabled:opacity-50"
-            style={{
-              background: "var(--oxblood)",
-              color: "var(--creme)",
-              padding: "18px 22px",
-              fontSize: 17,
-            }}
-          >
-            <Play size={18} fill="var(--creme)" strokeWidth={0} />
-            {submitting ? "Création…" : "Créer la partie"}
+        {/* sticky footer */}
+        <div
+          className="safe-bottom"
+          style={{ position: "sticky", bottom: 0, marginTop: 22, padding: "14px 22px 18px", background: "linear-gradient(to top, var(--bg) 70%, transparent)", display: "flex", alignItems: "center", gap: 14 }}
+        >
+          <button type="submit" disabled={!canSubmit} className="tb-btn tb-btn--accent" style={{ flex: 1 }}>
+            <span style={{ display: "inline-flex", fontSize: "0.9em" }}>▶</span>
+            <span>{submitting ? "Création…" : "Créer la partie"}</span>
           </button>
-          <div
-            className="flex items-center gap-2"
-            style={{ fontSize: 12, color: "var(--brun-mid)" }}
-          >
-            <SpotifyBadge />
-            <span>
-              {product === "premium"
-                ? "connecté · Premium ✓"
-                : product === "free"
-                  ? "connecté · gratuit ⚠"
-                  : "non lié"}
-            </span>
+          <div className="tb-mono" style={{ fontSize: 10.5, color: "var(--ink-dim)", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+            <GlyphIcon kind="spotify" size={16} color="var(--spotify)" />{" "}
+            {product === "premium" ? "Premium ✓" : product === "free" ? "gratuit ⚠" : "non lié"}
           </div>
         </div>
       </form>
     </main>
-  );
-}
-
-function Stepper({
-  label,
-  value,
-  onChange,
-  min,
-  max,
-  step = 1,
-  suffix,
-  disabled,
-  tooltip,
-}: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step?: number;
-  suffix?: string;
-  disabled?: boolean;
-  tooltip?: string;
-}) {
-  return (
-    <div
-      className="rounded-lg relative"
-      style={{
-        padding: "14px 16px",
-        background: "var(--creme-2)",
-        border: "1px solid var(--creme-3)",
-        opacity: disabled ? 0.55 : 1,
-      }}
-      title={tooltip}
-    >
-      <div
-        className="font-mono"
-        style={{
-          fontSize: 11,
-          color: "var(--brun-mid)",
-          letterSpacing: "0.1em",
-        }}
-      >
-        {label}
-      </div>
-      <div className="flex items-center justify-between mt-2">
-        <button
-          type="button"
-          onClick={() => onChange(Math.max(min, value - step))}
-          disabled={disabled || value <= min}
-          className="rounded-md disabled:opacity-30"
-          style={{
-            width: 28,
-            height: 28,
-            border: "1px solid var(--brun)",
-            background: "transparent",
-            fontSize: 16,
-          }}
-        >
-          −
-        </button>
-        <div
-          className="font-display font-bold"
-          style={{ fontSize: 28, letterSpacing: "-0.02em" }}
-        >
-          {value}
-          {suffix && (
-            <span
-              className="font-medium ml-0.5"
-              style={{ fontSize: 14, color: "var(--brun-mid)" }}
-            >
-              {suffix}
-            </span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => onChange(Math.min(max, value + step))}
-          disabled={disabled || value >= max}
-          className="rounded-md disabled:opacity-30"
-          style={{
-            width: 28,
-            height: 28,
-            border: "1px solid var(--brun)",
-            background: "transparent",
-            fontSize: 16,
-          }}
-        >
-          +
-        </button>
-      </div>
-    </div>
   );
 }

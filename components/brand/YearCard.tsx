@@ -16,9 +16,9 @@ type Props = {
   faded?: boolean;
 };
 
-// Carte "vinyl-label". Revealed=false → dos de carte (rayures oxblood +
-// disque crème avec "T" italique). Revealed=true → fond crème avec année
-// géante au centre + métadonnées artiste/titre en mono et italique.
+// Carte "vinyl-label". Revealed=false → dos de carte (rayures vin de marque +
+// disque crème avec "T" italique). Revealed=true → surface navy avec année
+// géante en or au centre + métadonnées artiste/titre.
 export function YearCard({
   year,
   size = "md",
@@ -36,23 +36,21 @@ export function YearCard({
         style={{
           width: s.w,
           height: s.h,
-          borderRadius: 10,
+          borderRadius: 14,
           background:
-            "repeating-linear-gradient(135deg, var(--oxblood) 0px, var(--oxblood) 8px, var(--oxblood-deep) 8px, var(--oxblood-deep) 16px)",
-          border: "2px solid var(--brun)",
-          boxShadow: "0 6px 16px rgba(45,27,18,0.2)",
+            "repeating-linear-gradient(135deg, var(--wine) 0px, var(--wine) 8px, var(--wine-deep) 8px, var(--wine-deep) 16px)",
+          boxShadow: "0 6px 16px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(255,255,255,0.06)",
         }}
       >
         <div
           className="flex items-center justify-center font-display italic font-bold"
           style={{
-            background: "var(--creme)",
+            background: "#FBF7EC",
             width: s.w * 0.55,
             height: s.w * 0.55,
             borderRadius: "50%",
-            color: "var(--oxblood)",
+            color: "var(--wine)",
             fontSize: s.year * 0.55,
-            border: "1px solid var(--brun)",
           }}
         >
           T
@@ -67,10 +65,10 @@ export function YearCard({
       style={{
         width: s.w,
         height: s.h,
-        borderRadius: 10,
-        background: "var(--creme)",
-        border: "1.5px solid var(--brun)",
-        boxShadow: "0 4px 12px rgba(45,27,18,0.14)",
+        borderRadius: 14,
+        background: "var(--surface)",
+        border: "1.5px solid var(--line-strong)",
+        boxShadow: "0 8px 20px rgba(0,0,0,0.16)",
         opacity: faded ? 0.55 : 1,
         padding: 6,
       }}
@@ -81,7 +79,7 @@ export function YearCard({
           style={{
             fontSize: s.label,
             letterSpacing: "0.12em",
-            color: "var(--brun-mid)",
+            color: "var(--ink-dim)",
           }}
         >
           {artist}
@@ -91,7 +89,7 @@ export function YearCard({
         className="font-display font-bold leading-none"
         style={{
           fontSize: s.year,
-          color: "var(--brun)",
+          color: "var(--year-ink)",
           letterSpacing: "-0.02em",
           fontVariationSettings: '"opsz" 144',
         }}
@@ -103,7 +101,7 @@ export function YearCard({
           className="italic font-display max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-center"
           style={{
             fontSize: s.label,
-            color: "var(--brun-mid)",
+            color: "var(--ink-2)",
             marginTop: 2,
           }}
         >

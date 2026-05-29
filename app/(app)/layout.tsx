@@ -24,7 +24,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">
+      <div
+        className="tb flex flex-1 min-h-[60vh] items-center justify-center"
+        style={{ background: "var(--bg)", color: "var(--ink-dim)", fontSize: 14 }}
+      >
         Initialisation…
       </div>
     );

@@ -1,56 +1,32 @@
 "use client";
 
 import { VinylDisc } from "@/components/brand/VinylDisc";
-import { YearCard } from "@/components/brand/YearCard";
-import { Stamp, MetaLabel } from "@/components/brand/Stamp";
+import { StripedCardBack } from "@/components/brand/StripedCardBack";
+import { Kicker } from "@/components/brand/Kicker";
 
 type Props = {
   isYouActive: boolean;
 };
 
-// Panneau "carte mystère": dos de carte (sans année visible) avec un vinyle
-// qui tourne derrière + label "Carte mystère" et tampon "À toi de jouer"
-// quand c'est le tour du joueur.
+// Panneau "carte mystère": dos de carte rayé vin, vinyle qui tourne derrière
+// (clippé par overflow:hidden), tampon "À toi de jouer" / "Tour en cours".
 export function MysteryCard({ isYouActive }: Props) {
   return (
-    <div
-      className="flex flex-col items-stretch relative overflow-hidden p-4 sm:p-[18px] animate-rise-in"
-      style={{
-        background: "var(--creme)",
-        border: "1.5px solid var(--brun)",
-        borderRadius: 10,
-      }}
-    >
-      <MetaLabel>Carte mystère</MetaLabel>
+    <div className="tb">
+      <Kicker style={{ marginBottom: 12 }}>Carte mystère</Kicker>
       <div
-        className="relative mt-2 mx-auto"
-        style={{ height: 200, width: "min(220px, 100%)" }}
+        className="tb-card animate-rise-in"
+        style={{ borderRadius: 20, padding: "26px 20px 20px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column", alignItems: "center" }}
       >
-        <div
-          className="absolute"
-          style={{
-            top: -10,
-            left: "calc(50% - 60px)",
-            zIndex: 1,
-            animation: "spin 8s linear infinite",
-          }}
-        >
-          <VinylDisc size={170} labelColor="var(--oxblood)" />
+        <div style={{ position: "absolute", right: -36, top: 28, opacity: 0.9, pointerEvents: "none" }}>
+          <VinylDisc size={150} label="" spinning />
         </div>
-        <div className="relative z-10 flex justify-center pt-1">
-          <YearCard year="?" size="lg" revealed={false} />
+        <div style={{ position: "relative" }}>
+          <StripedCardBack w={150} h={210} label="T" />
         </div>
-      </div>
-      <div className="mt-4 self-start">
-        {isYouActive ? (
-          <Stamp color="var(--oxblood)" rotate={-4}>
-            À toi de jouer
-          </Stamp>
-        ) : (
-          <Stamp color="var(--brun-mid)" rotate={-4}>
-            Tour en cours
-          </Stamp>
-        )}
+        <div className="tb-stamp" style={{ marginTop: 18, alignSelf: "flex-start", borderColor: isYouActive ? "var(--accent)" : "var(--ink-dim)", color: isYouActive ? "var(--accent)" : "var(--ink-dim)" }}>
+          {isYouActive ? "À toi de jouer" : "Tour en cours"}
+        </div>
       </div>
     </div>
   );

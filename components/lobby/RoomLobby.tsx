@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft, Copy, Link as LinkIcon, Play, Plus, Star } from "lucide-react";
-import { Stamp, MetaLabel } from "@/components/brand/Stamp";
-import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { VinylDisc } from "@/components/brand/VinylDisc";
+import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
+import { Stamp } from "@/components/brand/Stamp";
+import { StatusPill } from "@/components/brand/StatusPill";
+import { Btn } from "@/components/brand/Btn";
 import type { LobbyPlayer } from "@/components/lobby/PlayerList";
 
 type Props = {
@@ -29,40 +30,35 @@ type Props = {
 
 const FILL_TO = 8;
 
-// Pseudo-QR fait main (le vrai serait généré côté client avec qrcode lib —
-// pour l'instant on garde le pattern stylé du design).
-function FakeQR({ seed }: { seed: string }) {
-  const cells = Array.from({ length: 144 }, (_, i) => {
-    const row = Math.floor(i / 12);
-    const col = i % 12;
-    const isCorner =
-      (row < 3 && col < 3) || (row < 3 && col > 8) || (row > 8 && col < 3);
-    // hash from seed for pseudo-randomness
-    let h = 0;
-    for (const ch of seed + i) h = ((h * 31) + ch.charCodeAt(0)) | 0;
-    const on = Math.abs(h % 3) !== 0;
-    return isCorner || on;
-  });
+function TicketCard({ code, url }: { code: string; url: string }) {
+  const notch = "var(--hero-bg)";
+  const left = code.slice(0, 3);
+  const right = code.slice(3);
   return (
-    <div
-      className="grid"
-      style={{
-        width: 96,
-        height: 96,
-        background: "var(--brun)",
-        gridTemplateColumns: "repeat(12, 1fr)",
-        gridTemplateRows: "repeat(12, 1fr)",
-        padding: 6,
-        gap: 1,
-        borderRadius: 4,
-      }}
-    >
-      {cells.map((on, i) => (
+    <div style={{ position: "relative" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 18, padding: "22px 26px", boxShadow: "0 10px 30px rgba(0,0,0,0.25)" }}>
+        <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-dim)", marginBottom: 6 }}>Salle</div>
         <div
-          key={i}
-          style={{ background: on ? "var(--creme)" : "transparent" }}
-        />
-      ))}
+          className="font-display"
+          style={{ fontWeight: 700, fontSize: 48, lineHeight: 1, color: "var(--ink)", letterSpacing: "0.01em", display: "flex", alignItems: "center", gap: 10 }}
+        >
+          {left}
+          <span style={{ color: "var(--gold-deep)", fontSize: 30 }}>•</span>
+          {right}
+        </div>
+        <div className="tb-mono" style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 12, wordBreak: "break-all" }}>{url}</div>
+      </div>
+      <div style={{ position: "absolute", left: -10, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, borderRadius: "50%", background: notch }} />
+      <div style={{ position: "absolute", right: -10, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, borderRadius: "50%", background: notch }} />
+    </div>
+  );
+}
+
+function StatCell({ value, label }: { value: React.ReactNode; label: string }) {
+  return (
+    <div style={{ flex: 1 }}>
+      <div className="font-display" style={{ fontWeight: 700, fontSize: 30, color: "var(--ink)", lineHeight: 1 }}>{value}</div>
+      <div className="tb-mono" style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-dim)", marginTop: 7, lineHeight: 1.3 }}>{label}</div>
     </div>
   );
 }
@@ -87,341 +83,109 @@ export function RoomLobby({
   onCopyLink,
   copied,
 }: Props) {
-  const formatted = code.replace(/^(.{3})(.{3})$/, "$1·$2");
   const hostPlayer = players.find((p) => p.player_id === hostId);
   const emptySlots = Math.max(0, maxPlayers - players.length);
+  const modeLabel = mode === "online_premium" ? "En ligne" : mode === "host_audio" ? "Audio hôte" : "Local";
 
   return (
-    <div className="grid lg:grid-cols-[1.05fr_0.95fr] min-h-screen">
-      {/* LEFT — code + invite */}
-      <div
-        className="relative flex flex-col px-5 py-8 sm:px-8 sm:py-10"
-        style={{
-          background: "var(--brun)",
-          color: "var(--creme)",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <MetaLabel color="var(--or)">Tabarname · Lobby</MetaLabel>
+    <div className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg)", color: "var(--ink)" }}>
+      {/* top: code / share */}
+      <div className="safe-top" style={{ background: "var(--hero-bg)", color: "var(--hero-ink)", padding: "16px 22px 26px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+          <span className="tb-mono" style={{ fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--gold)" }}>Tabarname · Lobby</span>
           <button
             onClick={onLeave}
-            className="inline-flex items-center gap-1.5 font-mono"
-            style={{
-              background: "transparent",
-              color: "var(--creme)",
-              border: "1px solid rgba(250,246,240,0.3)",
-              padding: "6px 12px",
-              borderRadius: 4,
-              fontSize: 12,
-              letterSpacing: "0.1em",
-            }}
+            className="tb-mono"
+            style={{ fontSize: 12, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--hero-ink)", border: "1px solid var(--panel-line)", borderRadius: 999, padding: "7px 13px", whiteSpace: "nowrap", background: "transparent", cursor: "pointer" }}
           >
-            <ArrowLeft size={12} strokeWidth={2.5} /> QUITTER
+            ← Quitter
           </button>
         </div>
 
-        {/* Ticket */}
-        <div className="mt-12">
-          <MetaLabel color="var(--or)">Code de la salle · partage-le</MetaLabel>
-        </div>
-        <div className="mt-4 relative">
-          <div
-            className="relative flex items-stretch gap-4 sm:gap-7 px-5 py-6 sm:px-9 sm:py-8"
-            style={{
-              background: "var(--creme)",
-              color: "var(--brun)",
-              borderRadius: 10,
-              boxShadow: "0 20px 50px rgba(0,0,0,0.35)",
-            }}
+        <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 12 }}>Code de la salle · partage-le</div>
+        <TicketCard code={code} url={`tabarname.app/j/${code}`} />
+
+        <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+          <button
+            onClick={onCopyCode}
+            style={{ flex: 1, padding: "13px 10px", borderRadius: 12, border: "1px solid var(--panel-line)", color: "var(--hero-ink)", background: "rgba(255,255,255,0.04)", fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
           >
-            <div
-              className="absolute rounded-full"
-              style={{
-                left: -8,
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: 16,
-                height: 16,
-                background: "var(--brun)",
-              }}
-            />
-            <div
-              className="absolute rounded-full"
-              style={{
-                right: -8,
-                top: "50%",
-                transform: "translateY(-50%)",
-                width: 16,
-                height: 16,
-                background: "var(--brun)",
-              }}
-            />
-            <div className="flex-1">
-              <MetaLabel>Salle</MetaLabel>
-              <div
-                className="font-display font-bold flex items-baseline gap-1 mt-2"
-                style={{
-                  fontSize: "clamp(40px, 12vw, 92px)",
-                  letterSpacing: "0.02em",
-                  lineHeight: 1,
-                  fontVariationSettings: '"opsz" 144',
-                }}
-              >
-                {formatted.split("·")[0]}
-                <span style={{ color: "var(--or)", margin: "0 2px" }}>·</span>
-                {formatted.split("·")[1]}
-              </div>
-              <div
-                className="mt-3 font-mono"
-                style={{
-                  fontSize: 12,
-                  color: "var(--brun-mid)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                tabarname.app/j/{code}
-              </div>
-            </div>
-            <div
-              className="hidden sm:block"
-              style={{ width: 1, borderLeft: "2px dashed var(--creme-3)" }}
-            />
-            <div className="hidden sm:flex flex-col items-center justify-center gap-2">
-              <FakeQR seed={code} />
-              <div
-                className="font-mono"
-                style={{
-                  fontSize: 10,
-                  color: "var(--brun-mid)",
-                  letterSpacing: "0.1em",
-                }}
-              >
-                SCANNE
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-2 mt-3.5">
-            <button
-              onClick={onCopyCode}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md font-medium"
-              style={{
-                padding: "12px 16px",
-                background: "rgba(250,246,240,0.08)",
-                border: "1px solid rgba(250,246,240,0.2)",
-                color: "var(--creme)",
-                fontSize: 13,
-              }}
-            >
-              <Copy size={14} strokeWidth={2} />
-              {copied === "code" ? "Copié!" : "Copier le code"}
-            </button>
-            <button
-              onClick={onCopyLink}
-              className="flex-1 flex items-center justify-center gap-2 rounded-md font-medium"
-              style={{
-                padding: "12px 16px",
-                background: "rgba(250,246,240,0.08)",
-                border: "1px solid rgba(250,246,240,0.2)",
-                color: "var(--creme)",
-                fontSize: 13,
-              }}
-            >
-              <LinkIcon size={14} strokeWidth={2} />
-              {copied === "link" ? "Copié!" : "Copier le lien"}
-            </button>
-          </div>
+            ⧉ {copied === "code" ? "Copié!" : "Copier le code"}
+          </button>
+          <button
+            onClick={onCopyLink}
+            style={{ flex: 1, padding: "13px 10px", borderRadius: 12, border: "1px solid var(--panel-line)", color: "var(--hero-ink)", background: "rgba(255,255,255,0.04)", fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
+          >
+            🔗 {copied === "link" ? "Copié!" : "Copier le lien"}
+          </button>
         </div>
 
-        {/* Playlist */}
         {playlistName && (
-          <div className="mt-14">
-            <MetaLabel color="var(--or)">Playlist sélectionnée</MetaLabel>
-            <div
-              className="mt-3.5 flex items-center gap-4 rounded-lg"
-              style={{
-                padding: 18,
-                background: "rgba(250,246,240,0.06)",
-                border: "1px solid rgba(250,246,240,0.12)",
-              }}
-            >
-              <div className="shrink-0">
-                <VinylDisc size={72} labelColor="var(--or)" label="LP" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div
-                  className="font-display font-semibold truncate"
-                  style={{ fontSize: 22, letterSpacing: "-0.01em" }}
-                >
-                  {playlistName}
-                </div>
-                <div
-                  className="text-sm mt-1"
-                  style={{ color: "rgba(250,246,240,0.65)" }}
-                >
-                  {playlistTrackCount ?? "?"} chansons · Sélection de la maison
-                </div>
+          <>
+            <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--gold)", margin: "22px 0 10px" }}>Playlist sélectionnée</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.05)", border: "1px solid var(--panel-line)" }}>
+              <VinylDisc size={56} label="" />
+              <div style={{ minWidth: 0 }}>
+                <div className="font-display" style={{ fontWeight: 600, fontSize: 19, color: "var(--hero-ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{playlistName}</div>
+                <div style={{ fontSize: 13, color: "var(--panel-dim)", marginTop: 2 }}>{playlistTrackCount ?? "?"} chansons · Sélection de la maison</div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
-        <div className="flex-1" />
-
-        <div
-          className="mt-8 flex justify-between font-mono"
-          style={{
-            fontSize: 11,
-            color: "rgba(250,246,240,0.4)",
-            letterSpacing: "0.12em",
-          }}
-        >
-          <span>SIDE A · LOBBY</span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className="rounded-full"
-              style={{
-                width: 8,
-                height: 8,
-                background: "var(--green-spotify)",
-                animation: "pulse-soft 2s infinite",
-              }}
-            />
-            CONNECTÉ
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 18 }}>
+          <span className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--panel-dim)" }}>Side A · Lobby</span>
+          <span className="tb-pill" style={{ background: "transparent", color: "var(--spotify)" }}>
+            <span className="tb-pulse-dot" style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--spotify)" }} />
+            Connecté
           </span>
         </div>
       </div>
 
-      {/* RIGHT — players + settings */}
-      <div
-        className="flex flex-col px-5 py-8 sm:px-8 sm:py-10"
-        style={{ background: "var(--creme)" }}
-      >
-        <div className="flex items-baseline justify-between">
+      {/* players */}
+      <div style={{ padding: "24px 22px 0" }}>
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 16 }}>
           <div>
-            <MetaLabel>
-              {players.length} joueur{players.length > 1 ? "s" : ""} · max{" "}
-              {maxPlayers}
-            </MetaLabel>
-            <h2
-              className="font-display font-semibold mt-1"
-              style={{
-                fontSize: "clamp(32px, 6vw, 56px)",
-                letterSpacing: "-0.03em",
-                lineHeight: 1,
-              }}
-            >
-              <span className="italic">La</span> salle d&apos;attente
+            <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-dim)", marginBottom: 4 }}>
+              {players.length} joueur{players.length > 1 ? "s" : ""} · max {maxPlayers}
+            </div>
+            <h2 className="font-display" style={{ fontWeight: 700, fontSize: 30, color: "var(--ink)", letterSpacing: "-0.01em" }}>
+              <span style={{ fontStyle: "italic" }}>La</span> salle d&apos;attente
             </h2>
           </div>
           {hostPlayer && (
-            <Stamp color="var(--oxblood)" rotate={6}>
-              Hôte: {hostPlayer.pseudo}
-            </Stamp>
+            <div style={{ flexShrink: 0, marginTop: 6 }}>
+              <Stamp>Hôte: {hostPlayer.pseudo}</Stamp>
+            </div>
           )}
         </div>
 
-        <div className="mt-8 flex flex-col gap-2.5">
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {players.map((p, i) => {
             const isYou = p.player_id === selfId;
             const isPlayerHost = p.player_id === hostId;
             return (
               <div
                 key={p.player_id}
-                className="flex items-center gap-4 rounded-lg"
+                className="tb-card"
                 style={{
-                  padding: "12px 16px",
-                  background: isYou ? "rgba(139,35,49,0.08)" : "var(--creme)",
-                  border: `1.5px solid ${isYou ? "var(--oxblood)" : "var(--creme-3)"}`,
+                  display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 16, minHeight: 68,
+                  border: isYou ? "1.5px solid var(--accent)" : undefined,
                 }}
               >
-                <div
-                  className="font-mono w-6"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--brun-mid)",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </div>
-                <PlayerAvatar
-                  name={p.pseudo}
-                  color={colorForPlayer(p.player_id)}
-                  isHost={isPlayerHost}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="font-display font-semibold truncate"
-                      style={{ fontSize: 22, letterSpacing: "-0.01em" }}
-                    >
-                      {p.pseudo}
-                    </div>
-                    {isYou && (
-                      <span
-                        className="font-mono font-bold"
-                        style={{
-                          fontSize: 10,
-                          color: "var(--oxblood)",
-                          letterSpacing: "0.15em",
-                        }}
-                      >
-                        TOI
-                      </span>
-                    )}
-                    {isPlayerHost && (
-                      <span
-                        className="inline-flex items-center gap-1 font-mono font-bold"
-                        style={{
-                          fontSize: 10,
-                          color: "var(--or)",
-                          letterSpacing: "0.15em",
-                        }}
-                      >
-                        <Star size={10} fill="var(--or)" strokeWidth={0} />
-                        HÔTE
-                      </span>
-                    )}
-                    {p.has_premium && (
-                      <span
-                        className="font-mono font-bold"
-                        style={{
-                          fontSize: 10,
-                          color: "var(--green-spotify)",
-                          letterSpacing: "0.15em",
-                        }}
-                      >
-                        ◉ PREMIUM
-                      </span>
-                    )}
+                <span className="tb-mono" style={{ fontSize: 13, color: "var(--ink-dim)", width: 22, flexShrink: 0 }}>{String(i + 1).padStart(2, "0")}</span>
+                <PlayerAvatar name={p.pseudo} color={colorForPlayer(p.player_id)} size={44} isHost={isPlayerHost} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="font-display" style={{ fontWeight: 600, fontSize: 21, color: "var(--ink)", lineHeight: 1.05, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.pseudo}
+                  </div>
+                  <div style={{ display: "flex", gap: 6, marginTop: 5, flexWrap: "wrap" }}>
+                    {isYou && <StatusPill tone="host">Toi</StatusPill>}
+                    {isPlayerHost && <StatusPill tone="host">Hôte</StatusPill>}
+                    {p.has_premium && <StatusPill tone="premium">Premium</StatusPill>}
                   </div>
                 </div>
-                <div
-                  className="flex items-center gap-1.5 font-mono font-semibold"
-                  style={{
-                    fontSize: 12,
-                    letterSpacing: "0.1em",
-                    color: p.is_connected
-                      ? "var(--green-pret)"
-                      : "var(--brun-mid)",
-                  }}
-                >
-                  <span
-                    className="rounded-full"
-                    style={{
-                      width: 8,
-                      height: 8,
-                      background: p.is_connected
-                        ? "var(--green-pret)"
-                        : "var(--brun-mid)",
-                      animation: p.is_connected
-                        ? "none"
-                        : "blink 1.4s infinite",
-                    }}
-                  />
-                  {p.is_connected ? "PRÊT" : "ABSENT"}
-                </div>
+                <StatusPill tone={p.is_connected ? "ready" : "wait"}>{p.is_connected ? "Prêt" : "Absent"}</StatusPill>
               </div>
             );
           })}
@@ -430,112 +194,38 @@ export function RoomLobby({
             Array.from({ length: Math.min(emptySlots, 3) }).map((_, i) => (
               <div
                 key={`empty-${i}`}
-                className="flex items-center gap-4 rounded-lg opacity-70"
-                style={{
-                  padding: "12px 16px",
-                  border: "1.5px dashed var(--creme-3)",
-                }}
+                style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", borderRadius: 16, minHeight: 60, border: "1.5px dashed var(--line-strong)", opacity: 0.6 }}
               >
-                <div
-                  className="font-mono w-6"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--brun-mid)",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {String(players.length + i + 1).padStart(2, "0")}
-                </div>
-                <div
-                  className="flex items-center justify-center rounded-full"
-                  style={{
-                    width: 44,
-                    height: 44,
-                    border: "1.5px dashed var(--creme-3)",
-                    color: "var(--creme-3)",
-                  }}
-                >
-                  <Plus size={18} strokeWidth={2} />
-                </div>
-                <div
-                  className="italic"
-                  style={{ fontSize: 14, color: "var(--brun-mid)" }}
-                >
-                  en attente d&apos;un joueur…
-                </div>
+                <span className="tb-mono" style={{ fontSize: 13, color: "var(--ink-dim)", width: 22, flexShrink: 0 }}>{String(players.length + i + 1).padStart(2, "0")}</span>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", border: "1.5px dashed var(--line-strong)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-dim)", flexShrink: 0 }}>＋</div>
+                <span className="font-display italic" style={{ fontSize: 16, color: "var(--ink-dim)" }}>en attente d&apos;un joueur…</span>
               </div>
             ))}
         </div>
+      </div>
 
-        <div className="flex-1" />
-
-        {/* Settings strip */}
-        <div
-          className="mt-8 grid grid-cols-3 gap-2.5 rounded-lg"
-          style={{
-            padding: "16px 20px",
-            background: "var(--creme-2)",
-          }}
-        >
-          <div>
-            <MetaLabel>Cartes pour gagner</MetaLabel>
-            <div
-              className="font-display font-semibold mt-0.5"
-              style={{ fontSize: 26 }}
-            >
-              {winConditionCards}
-            </div>
-          </div>
-          <div>
-            <MetaLabel>Mode</MetaLabel>
-            <div
-              className="font-display font-semibold mt-0.5"
-              style={{ fontSize: 18 }}
-            >
-              {mode === "online_premium"
-                ? "En ligne"
-                : mode === "host_audio"
-                  ? "Audio hôte"
-                  : "Local"}
-            </div>
-          </div>
-          <div>
-            <MetaLabel>Contestations</MetaLabel>
-            <div
-              className="font-display font-semibold mt-0.5"
-              style={{ fontSize: 18 }}
-            >
-              {challengesEnabled ? "Permises" : "Off"}
-            </div>
-          </div>
+      {/* settings summary */}
+      <div style={{ padding: "22px 22px 0" }}>
+        <div className="tb-card" style={{ display: "flex", gap: 12, padding: "18px 20px", background: "var(--surface-2)" }}>
+          <StatCell value={winConditionCards} label="Cartes pour gagner" />
+          <div style={{ width: 1, background: "var(--line)" }} />
+          <StatCell value={modeLabel} label="Mode" />
+          <div style={{ width: 1, background: "var(--line)" }} />
+          <StatCell value={challengesEnabled ? "On" : "Off"} label="Contestations" />
         </div>
+      </div>
 
-        <div className="mt-4">
-          {isHost ? (
-            <button
-              onClick={onStart}
-              disabled={!canStart || starting}
-              className="w-full flex items-center justify-center gap-2.5 font-semibold rounded-md disabled:opacity-50"
-              style={{
-                background: "var(--oxblood)",
-                color: "var(--creme)",
-                padding: "16px 32px",
-                fontSize: 17,
-              }}
-            >
-              <Play size={18} fill="var(--creme)" strokeWidth={0} />
-              {starting ? "Démarrage…" : "Démarrer la partie"}
-            </button>
-          ) : (
-            <div
-              className="text-center"
-              style={{ fontSize: 14, color: "var(--brun-mid)" }}
-            >
-              {hostPlayer?.pseudo ?? "L'hôte"} démarrera la partie quand tout le
-              monde sera prêt.
-            </div>
-          )}
-        </div>
+      {/* start CTA */}
+      <div className="safe-bottom" style={{ padding: "20px 22px 30px" }}>
+        {isHost ? (
+          <Btn kind="accent" block disabled={!canStart || starting} icon={<span>▶</span>} onClick={onStart}>
+            {starting ? "Démarrage…" : "Démarrer la partie"}
+          </Btn>
+        ) : (
+          <div style={{ textAlign: "center", fontSize: 14, color: "var(--ink-dim)" }}>
+            {hostPlayer?.pseudo ?? "L'hôte"} démarrera la partie quand tout le monde sera prêt.
+          </div>
+        )}
       </div>
     </div>
   );

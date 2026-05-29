@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/brand/StatusPill";
 import { t } from "@/lib/i18n";
 
 type Playlist = {
@@ -17,6 +14,43 @@ type Playlist = {
   is_active: boolean;
   spotify_playlist_id: string;
   track_count?: number;
+};
+
+function TopBar() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--wine)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
+        </span>
+        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 18, color: "var(--ink)" }}>Tabarname</span>
+      </div>
+      <Link href="/" className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-2)", border: "1px solid var(--line-strong)", borderRadius: 999, padding: "7px 13px", whiteSpace: "nowrap" }}>
+        ← Retour
+      </Link>
+    </div>
+  );
+}
+
+const fieldStyle: React.CSSProperties = {
+  width: "100%",
+  background: "var(--surface)",
+  border: "1.5px solid var(--line-strong)",
+  borderRadius: 12,
+  padding: "13px 14px",
+  color: "var(--ink)",
+  fontSize: 15,
+  outline: "none",
+  fontFamily: "var(--ff-body)",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontFamily: "var(--ff-body)",
+  fontWeight: 600,
+  fontSize: 14,
+  color: "var(--ink)",
+  marginBottom: 8,
 };
 
 export default function AdminPlaylistsPage() {
@@ -34,10 +68,7 @@ export default function AdminPlaylistsPage() {
       .from("curated_playlists")
       .select("id, slug, name, description, is_active, spotify_playlist_id")
       .order("name");
-
     const lists = (data ?? []) as Playlist[];
-
-    // Compte des pistes par playlist
     const counts = await Promise.all(
       lists.map(async (pl) => {
         const { count } = await supabase
@@ -71,17 +102,11 @@ export default function AdminPlaylistsPage() {
       const res = await fetch("/api/playlists/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          input,
-          slug: slug || undefined,
-          name: name.trim() || undefined,
-        }),
+        body: JSON.stringify({ input, slug: slug || undefined, name: name.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail ?? data.error ?? "import_failed");
-      setMessage(
-        `✓ ${data.importedCount} pistes importées sur ${data.totalAvailable}.`,
-      );
+      setMessage(`✓ ${data.importedCount} pistes importées sur ${data.totalAvailable}.`);
       setInput("");
       setSlug("");
       setName("");
@@ -103,101 +128,71 @@ export default function AdminPlaylistsPage() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-6 py-12 space-y-10">
-      <header>
-        <h1 className="font-display text-4xl font-bold mb-2">{t("admin.title")}</h1>
-        <p className="text-muted-foreground">{t("admin.subtitle")}</p>
-      </header>
+    <main className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg-grad)", color: "var(--ink)" }}>
+      <div className="safe-top safe-bottom" style={{ padding: "12px 22px 36px" }}>
+        <TopBar />
 
-      {/* Import */}
-      <section className="rounded-lg border bg-card p-6 space-y-4">
-        <h2 className="font-display text-2xl">{t("admin.import.title")}</h2>
-        <form onSubmit={onImport} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="input">{t("admin.import.idLabel")}</Label>
-            <Input
-              id="input"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={t("admin.import.idPlaceholder")}
-              required
-            />
+        <h1 className="font-display" style={{ fontWeight: 700, fontSize: 44, color: "var(--ink)", letterSpacing: "-0.01em", marginTop: 22 }}>{t("admin.title")}</h1>
+        <p style={{ fontSize: 14.5, color: "var(--ink-2)", marginTop: 8 }}>{t("admin.subtitle")}</p>
+
+        {/* import card */}
+        <form onSubmit={onImport} className="tb-card" style={{ padding: "22px 20px", marginTop: 22 }}>
+          <h2 className="font-display" style={{ fontWeight: 700, fontSize: 26, color: "var(--ink)", lineHeight: 1.1, marginBottom: 18 }}>{t("admin.import.title")}</h2>
+
+          <label htmlFor="input" style={labelStyle}>{t("admin.import.idLabel")}</label>
+          <input id="input" value={input} onChange={(e) => setInput(e.target.value)} placeholder={t("admin.import.idPlaceholder")} required style={fieldStyle} />
+
+          <label htmlFor="slug" style={{ ...labelStyle, margin: "16px 0 8px" }}>
+            {t("admin.import.slugLabel")} <span style={{ color: "var(--ink-dim)", fontWeight: 400 }}>(optionnel)</span>
+          </label>
+          <input id="slug" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))} placeholder={t("admin.import.slugPlaceholder")} style={fieldStyle} />
+
+          <label htmlFor="name" style={{ ...labelStyle, margin: "16px 0 8px" }}>{t("admin.import.nameLabel")}</label>
+          <input id="name" value={name} onChange={(e) => setName(e.target.value)} style={fieldStyle} />
+
+          <div style={{ marginTop: 18 }}>
+            <button type="submit" disabled={submitting} className="tb-btn tb-btn--wine">
+              {submitting ? t("admin.import.submitting") : t("admin.import.submit")}
+            </button>
           </div>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="slug">
-                {t("admin.import.slugLabel")}{" "}
-                <span className="text-muted-foreground text-xs">(optionnel)</span>
-              </Label>
-              <Input
-                id="slug"
-                value={slug}
-                onChange={(e) =>
-                  setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))
-                }
-                placeholder={t("admin.import.slugPlaceholder")}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="name">{t("admin.import.nameLabel")}</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-            </div>
-          </div>
-          <Button type="submit" disabled={submitting}>
-            {submitting ? t("admin.import.submitting") : t("admin.import.submit")}
-          </Button>
-          {message && <p className="text-sm text-emerald-600">{message}</p>}
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          {message && <p style={{ marginTop: 12, fontSize: 13, color: "var(--spotify)" }}>{message}</p>}
+          {error && <p style={{ marginTop: 12, fontSize: 13, color: "var(--destructive)" }}>{error}</p>}
         </form>
-      </section>
 
-      {/* Liste */}
-      <section>
-        <h2 className="font-display text-2xl mb-3">{t("admin.list.title")}</h2>
+        {/* existing */}
+        <h2 className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--ink)", margin: "34px 0 14px" }}>{t("admin.list.title")}</h2>
         {playlists.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("admin.list.empty")}</p>
+          <p style={{ fontSize: 14, color: "var(--ink-dim)" }}>{t("admin.list.empty")}</p>
         ) : (
-          <ul className="divide-y rounded-lg border bg-card">
-            {playlists.map((p) => (
-              <li
-                key={p.id}
-                className="px-4 py-3 flex items-center justify-between gap-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium flex items-center gap-2">
-                    {p.name}
-                    {p.is_active ? (
-                      <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40">
-                        {t("admin.list.active")}
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary">{t("admin.list.inactive")}</Badge>
-                    )}
+          <div className="tb-card" style={{ overflow: "hidden", padding: 0 }}>
+            {playlists.map((p, idx) => (
+              <div key={p.id}>
+                {idx > 0 && <div style={{ height: 1, background: "var(--line)" }} />}
+                <div style={{ padding: "16px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                      <span className="font-display" style={{ fontWeight: 600, fontSize: 20, color: "var(--ink)", lineHeight: 1.15 }}>{p.name}</span>
+                      {p.is_active ? <StatusPill tone="ready">{t("admin.list.active")}</StatusPill> : <StatusPill tone="wait">{t("admin.list.inactive")}</StatusPill>}
+                    </div>
+                    <div className="tb-mono" style={{ fontSize: 11.5, color: "var(--ink-dim)", marginTop: 7, wordBreak: "break-all" }}>
+                      {p.slug} · {p.track_count} {t("admin.list.tracks")}
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    <span className="font-mono">{p.slug}</span> · {p.track_count}{" "}
-                    {t("admin.list.tracks")}
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => toggleActive(p)} className="tb-btn tb-btn--ghost" style={{ padding: "10px 16px", fontSize: 13, borderRadius: 11 }}>
+                      {t("admin.list.toggle")}
+                    </button>
+                    <Link href={`/admin/playlists/${p.id}`} className="tb-btn tb-btn--wine" style={{ padding: "10px 18px", fontSize: 13, borderRadius: 11 }}>
+                      {t("admin.list.edit")}
+                    </Link>
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <Button size="sm" variant="outline" onClick={() => toggleActive(p)}>
-                    {t("admin.list.toggle")}
-                  </Button>
-                  <Link
-                    href={`/admin/playlists/${p.id}`}
-                    className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-                  >
-                    {t("admin.list.edit")}
-                  </Link>
-                </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
-      </section>
 
-      <div className="pt-6">
-        <Link href="/" className="text-sm underline text-muted-foreground">
+        <Link href="/" style={{ display: "inline-block", marginTop: 30, color: "var(--accent)", fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3 }}>
           ← {t("game.backHome")}
         </Link>
       </div>

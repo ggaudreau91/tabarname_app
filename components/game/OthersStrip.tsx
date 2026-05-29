@@ -1,8 +1,8 @@
 "use client";
 
-import { Flag, Check } from "lucide-react";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
-import { MetaLabel } from "@/components/brand/Stamp";
+import { Kicker } from "@/components/brand/Kicker";
+import { ProgressBar } from "@/components/brand/ProgressBar";
 
 type StripPlayer = {
   player_id: string;
@@ -20,118 +20,46 @@ type Props = {
   onChallenge?: () => void;
 };
 
-// Barre du bas: les autres joueurs avec mini-jauges de cartes. Bouton
-// "Contester" actif pendant challenge_window.
-export function OthersStrip({
-  players,
-  totalToWin,
-  canChallenge,
-  hasChallenged,
-  onChallenge,
-}: Props) {
+// Barre du bas: les autres joueurs avec mini-jauges. Bouton "Contester"
+// actif pendant challenge_window.
+export function OthersStrip({ players, totalToWin, canChallenge, hasChallenged, onChallenge }: Props) {
   return (
-    <div
-      className="px-4 sm:px-6 py-5"
-      style={{
-        borderTop: "1px solid var(--creme-3)",
-        background: "var(--creme)",
-      }}
-    >
-      <div className="flex items-baseline justify-between mb-3.5">
-        <MetaLabel>Autres joueurs · {players.length}</MetaLabel>
+    <div className="tb" style={{ padding: "14px 20px 30px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <Kicker>Autres joueurs · {players.length}</Kicker>
         {canChallenge && !hasChallenged && (
           <button
             onClick={onChallenge}
-            className="inline-flex items-center gap-1.5 font-medium"
-            style={{
-              background: "var(--creme-2)",
-              border: "1px solid var(--creme-3)",
-              color: "var(--brun)",
-              padding: "4px 10px",
-              borderRadius: 4,
-              fontSize: 12,
-            }}
+            className="tb-mono"
+            style={{ background: "var(--surface-2)", border: "1px solid var(--line)", color: "var(--ink)", padding: "6px 12px", borderRadius: 999, fontSize: 12, cursor: "pointer" }}
           >
-            <Flag size={12} strokeWidth={2.5} /> Contester un placement
+            ⚑ Contester
           </button>
         )}
         {hasChallenged && (
-          <span
-            className="inline-flex items-center gap-1.5 font-mono"
-            style={{
-              fontSize: 11,
-              color: "var(--green-pret)",
-              letterSpacing: "0.1em",
-            }}
-          >
-            <Check size={12} strokeWidth={3} /> CONTESTATION ENVOYÉE
+          <span className="tb-pill" style={{ background: "rgba(31,138,72,0.14)", color: "var(--spotify)" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--spotify)" }} />
+            Contestation envoyée
           </span>
         )}
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {players.map((p) => (
-          <div
-            key={p.player_id}
-            className="relative flex items-center gap-3 rounded-lg"
-            style={{
-              background: "var(--creme-2)",
-              border: "1px solid var(--creme-3)",
-              padding: "12px 14px",
-            }}
-          >
-            <PlayerAvatar
-              name={p.pseudo}
-              color={colorForPlayer(p.player_id)}
-              isHost={p.isHost}
-              size={36}
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <div
-                  className="font-display font-semibold truncate"
-                  style={{ fontSize: 17, letterSpacing: "-0.01em" }}
-                >
-                  {p.pseudo}
-                </div>
+          <div key={p.player_id} className="tb-card" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14 }}>
+            <PlayerAvatar name={p.pseudo} color={colorForPlayer(p.player_id)} isHost={p.isHost} size={40} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="font-display" style={{ fontWeight: 600, fontSize: 18, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.pseudo}</span>
                 {p.isLeader && (
-                  <span
-                    className="font-mono font-bold"
-                    style={{
-                      fontSize: 9,
-                      color: "var(--or)",
-                      letterSpacing: "0.15em",
-                    }}
-                  >
-                    LEADER
-                  </span>
+                  <span className="tb-mono" style={{ fontSize: 9.5, letterSpacing: "0.12em", color: "var(--gold-deep)", textTransform: "uppercase", flexShrink: 0 }}>Leader</span>
                 )}
               </div>
-              <div className="flex items-center gap-0.5 mt-1">
-                {Array.from({ length: Math.min(totalToWin, 10) }).map((_, j) => (
-                  <div
-                    key={j}
-                    style={{
-                      width: 6,
-                      height: 14,
-                      background:
-                        j < p.cards ? "var(--brun)" : "var(--creme-3)",
-                      borderRadius: 1,
-                    }}
-                  />
-                ))}
-                <div
-                  className="ml-1.5 font-mono"
-                  style={{
-                    fontSize: 11,
-                    color: "var(--brun-mid)",
-                    letterSpacing: "0.05em",
-                  }}
-                >
-                  {p.cards}/{totalToWin}
-                </div>
+              <div style={{ marginTop: 6 }}>
+                <ProgressBar value={p.cards} max={Math.min(totalToWin, 10)} tone="gold" />
               </div>
             </div>
+            <span className="tb-mono" style={{ fontSize: 12, color: "var(--ink-dim)", flexShrink: 0 }}>{p.cards}/{totalToWin}</span>
           </div>
         ))}
       </div>
