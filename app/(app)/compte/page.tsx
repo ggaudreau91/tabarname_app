@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Copy, Check } from "lucide-react";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import { useSpotifyPlayer } from "@/components/spotify/SpotifyPlayerProvider";
-import { Badge } from "@/components/ui/badge";
+import { GlyphIcon } from "@/components/brand/GlyphIcon";
+import { StatusPill } from "@/components/brand/StatusPill";
 import { t } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/fr";
 
@@ -18,13 +18,24 @@ type RoomRow = {
   created_at: string;
 };
 
-type Row = {
-  pseudo: string;
-  joined_at: string;
-  room: RoomRow;
-};
-
+type Row = { pseudo: string; joined_at: string; room: RoomRow };
 type CardRow = { room_id: string };
+
+function TopBar() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+        <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--wine)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
+        </span>
+        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 18, color: "var(--ink)" }}>Tabarname</span>
+      </div>
+      <Link href="/" className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-2)", border: "1px solid var(--line-strong)", borderRadius: 999, padding: "7px 13px", whiteSpace: "nowrap" }}>
+        ← Retour
+      </Link>
+    </div>
+  );
+}
 
 export default function ComptePage() {
   const supabase = useMemo(() => getSupabaseBrowser(), []);
@@ -44,7 +55,6 @@ export default function ComptePage() {
         setLoading(false);
         return;
       }
-
       const { data: memberships } = await supabase
         .from("room_players")
         .select(
@@ -52,10 +62,8 @@ export default function ComptePage() {
         )
         .eq("player_id", userId)
         .order("joined_at", { ascending: false });
-
       const membershipRows = (memberships ?? []) as unknown as Row[];
       setRows(membershipRows);
-
       const roomIds = membershipRows.map((r) => r.room.id).filter(Boolean);
       if (roomIds.length > 0) {
         const { data: cards } = await supabase
@@ -63,178 +71,129 @@ export default function ComptePage() {
           .select("room_id")
           .eq("player_id", userId)
           .in("room_id", roomIds);
-
         const counts: Record<string, number> = {};
         for (const c of (cards ?? []) as CardRow[]) {
           counts[c.room_id] = (counts[c.room_id] ?? 0) + 1;
         }
         setCardsByRoom(counts);
       }
-
       setLoading(false);
     })();
   }, [supabase]);
 
-  // Stats agrégées
   const stats = useMemo(() => {
     const finished = rows.filter((r) => r.room.status === "finished");
-    const won = finished.filter(
-      (r) => (cardsByRoom[r.room.id] ?? 0) >= r.room.win_condition_cards,
-    );
+    const won = finished.filter((r) => (cardsByRoom[r.room.id] ?? 0) >= r.room.win_condition_cards);
     const totalCards = Object.values(cardsByRoom).reduce((a, b) => a + b, 0);
-    return {
-      played: rows.length,
-      won: won.length,
-      cards: totalCards,
-    };
+    return { played: rows.length, won: won.length, cards: totalCards };
   }, [rows, cardsByRoom]);
 
-  if (loading) {
-    return (
-      <main className="max-w-3xl mx-auto px-6 py-12">
-        <p className="text-muted-foreground">Chargement…</p>
-      </main>
-    );
-  }
+  const statCards = [
+    { v: stats.played, l: t("compte.stats.played"), tone: "ink" as const },
+    { v: stats.won, l: t("compte.stats.won"), tone: "wine" as const },
+    { v: stats.cards, l: t("compte.stats.cards"), tone: "gold" as const },
+  ];
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-12 space-y-10">
-      <header>
-        <h1 className="font-display text-4xl font-bold mb-2">{t("compte.title")}</h1>
-        {selfId && (
-          <button
-            type="button"
-            onClick={async () => {
-              await navigator.clipboard.writeText(selfId);
-              setIdCopied(true);
-              setTimeout(() => setIdCopied(false), 2000);
-            }}
-            className="inline-flex items-center gap-2 font-mono"
-            style={{
-              fontSize: 11,
-              color: "var(--brun-mid)",
-              letterSpacing: "0.05em",
-              background: "var(--creme-2)",
-              border: "1px solid var(--creme-3)",
-              borderRadius: 4,
-              padding: "4px 8px",
-            }}
-            title="Copier ton UUID (utile pour ADMIN_PLAYER_IDS sur Vercel)"
-          >
-            <span>{selfId}</span>
-            {idCopied ? (
-              <Check size={11} strokeWidth={3} color="var(--green-pret)" />
-            ) : (
-              <Copy size={11} strokeWidth={2} />
-            )}
-          </button>
-        )}
-      </header>
+    <main className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg-grad)", color: "var(--ink)" }}>
+      <div className="safe-top safe-bottom" style={{ padding: "12px 22px 36px" }}>
+        <TopBar />
 
-      {/* Spotify */}
-      <section>
-        <h2 className="font-display text-2xl mb-3">{t("compte.spotify.title")}</h2>
-        <div className="rounded-lg border bg-card p-4 flex items-center gap-3">
-          {product === "premium" && (
-            <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40">
-              Premium
-            </Badge>
-          )}
-          {product === "free" && <Badge variant="secondary">Compte gratuit</Badge>}
-          {product === null && (
-            <a
-              href="/api/spotify/login?return_to=/compte"
-              className="inline-flex items-center justify-center rounded-md bg-[#1DB954] px-4 py-2 text-sm font-medium text-black hover:bg-[#1ed760]"
-            >
-              {t("spotify.connect")}
-            </a>
-          )}
-        </div>
-      </section>
+        <h1 className="font-display" style={{ fontWeight: 700, fontSize: 44, color: "var(--ink)", letterSpacing: "-0.01em", marginTop: 22 }}>
+          {t("compte.title")}
+        </h1>
 
-      {/* Stats */}
-      <section>
-        <h2 className="font-display text-2xl mb-3">{t("compte.stats.title")}</h2>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-lg border bg-card p-4 text-center">
-            <div className="font-display text-4xl font-bold">{stats.played}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {t("compte.stats.played")}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-4 text-center">
-            <div className="font-display text-4xl font-bold text-primary">
-              {stats.won}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {t("compte.stats.won")}
-            </div>
-          </div>
-          <div className="rounded-lg border bg-card p-4 text-center">
-            <div className="font-display text-4xl font-bold text-accent-foreground">
-              {stats.cards}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {t("compte.stats.cards")}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Historique */}
-      <section>
-        <h2 className="font-display text-2xl mb-3">{t("compte.history.title")}</h2>
-        {rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{t("compte.history.empty")}</p>
+        {loading ? (
+          <p style={{ color: "var(--ink-dim)", marginTop: 16 }}>Chargement…</p>
         ) : (
-          <ul className="divide-y rounded-lg border bg-card">
-            {rows.map((r) => {
-              const cards = cardsByRoom[r.room.id] ?? 0;
-              const won =
-                r.room.status === "finished" && cards >= r.room.win_condition_cards;
-              const statusKey =
-                `compte.history.status.${r.room.status}` as TranslationKey;
-              return (
-                <li
-                  key={r.room.id}
-                  className="px-4 py-3 flex items-center justify-between gap-3"
-                >
-                  <div>
-                    <div className="font-medium flex items-center gap-2">
-                      <span className="font-mono">{r.room.code}</span>
-                      <span className="text-xs text-muted-foreground">
-                        — {r.room.playlist?.name ?? "?"}
-                      </span>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {t(statusKey)} · {cards} cartes
-                      {won && (
-                        <span className="ml-1 text-primary font-medium">
-                          · {t("compte.history.won")}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {(r.room.status === "lobby" ||
-                    r.room.status === "in_progress") && (
-                    <Link
-                      href={`/parties/${r.room.code}`}
-                      className="text-xs underline"
-                    >
-                      Retourner
-                    </Link>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+          <>
+            {selfId && (
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(selfId);
+                  setIdCopied(true);
+                  setTimeout(() => setIdCopied(false), 1400);
+                }}
+                style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", marginTop: 16, background: "var(--surface-2)", border: "1px solid var(--line)", borderRadius: 12, padding: "13px 16px", cursor: "pointer" }}
+                title="Copier ton UUID"
+              >
+                <span className="tb-mono" style={{ fontSize: 12.5, color: "var(--ink-2)", flex: 1, textAlign: "left", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selfId}</span>
+                <span style={{ color: idCopied ? "var(--spotify)" : "var(--ink-dim)", flexShrink: 0, display: "flex" }}>
+                  {idCopied ? <span className="tb-mono" style={{ fontSize: 11 }}>Copié ✓</span> : <GlyphIcon kind="copy" size={18} />}
+                </span>
+              </button>
+            )}
 
-      <div className="pt-6">
-        <Link href="/" className="text-sm underline text-muted-foreground">
-          ← {t("game.backHome")}
-        </Link>
+            {/* spotify */}
+            <h2 className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--ink)", marginTop: 34 }}>{t("compte.spotify.title")}</h2>
+            <div className="tb-card" style={{ padding: "22px 20px", marginTop: 14, display: "flex", justifyContent: "center" }}>
+              {product === "premium" && <StatusPill tone="premium">Premium</StatusPill>}
+              {product === "free" && <StatusPill tone="wait">Compte gratuit</StatusPill>}
+              {product === null && (
+                <a href="/api/spotify/login?return_to=/compte" className="tb-btn tb-btn--spotify">
+                  <GlyphIcon kind="spotify" size={18} color="#06210F" />
+                  <span>{t("spotify.connect")}</span>
+                </a>
+              )}
+            </div>
+
+            {/* stats */}
+            <h2 className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--ink)", marginTop: 34 }}>{t("compte.stats.title")}</h2>
+            <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+              {statCards.map((s, i) => (
+                <div key={i} className="tb-card" style={{ flex: 1, padding: "20px 12px", textAlign: "center", background: "var(--surface-2)" }}>
+                  <div className="font-display" style={{ fontWeight: 700, fontSize: 40, lineHeight: 1, color: s.tone === "wine" ? "#D9606E" : s.tone === "gold" ? "var(--accent)" : "var(--ink)" }}>{s.v}</div>
+                  <div style={{ fontSize: 12, color: "var(--ink-2)", marginTop: 10, lineHeight: 1.3 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* parties */}
+            <h2 className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--ink)", marginTop: 34 }}>{t("compte.history.title")}</h2>
+            {rows.length === 0 ? (
+              <p style={{ fontSize: 14.5, lineHeight: 1.55, color: "var(--ink-2)", marginTop: 12 }}>{t("compte.history.empty")}</p>
+            ) : (
+              <div className="tb-card" style={{ overflow: "hidden", padding: 0, marginTop: 14 }}>
+                {rows.map((r, idx) => {
+                  const cards = cardsByRoom[r.room.id] ?? 0;
+                  const won = r.room.status === "finished" && cards >= r.room.win_condition_cards;
+                  const statusKey = `compte.history.status.${r.room.status}` as TranslationKey;
+                  return (
+                    <div key={r.room.id}>
+                      {idx > 0 && <div style={{ height: 1, background: "var(--line)" }} />}
+                      <div style={{ padding: "14px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span className="tb-mono" style={{ fontSize: 15, color: "var(--ink)", fontWeight: 600 }}>{r.room.code}</span>
+                            <span style={{ fontSize: 12.5, color: "var(--ink-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>— {r.room.playlist?.name ?? "?"}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: "var(--ink-dim)", marginTop: 3 }}>
+                            {t(statusKey)} · {cards} cartes
+                            {won && <span style={{ marginLeft: 4, color: "var(--accent)", fontWeight: 600 }}>· {t("compte.history.won")}</span>}
+                          </div>
+                        </div>
+                        {(r.room.status === "lobby" || r.room.status === "in_progress") && (
+                          <Link href={`/parties/${r.room.code}`} style={{ fontSize: 13, color: "var(--accent)", flexShrink: 0 }}>Retourner →</Link>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+              <Link href="/parties/nouvelle" className="tb-btn tb-btn--accent">
+                <span>＋</span> Créer
+              </Link>
+              <Link href="/parties/rejoindre" className="tb-btn tb-btn--ghost">Rejoindre</Link>
+            </div>
+
+            <Link href="/" style={{ display: "inline-block", marginTop: 26, color: "var(--accent)", fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3 }}>
+              ← {t("game.backHome")}
+            </Link>
+          </>
+        )}
       </div>
     </main>
   );

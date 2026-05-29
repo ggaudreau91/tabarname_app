@@ -3,8 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getSupabaseBrowser } from "@/lib/supabase/browser";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { GlyphIcon } from "@/components/brand/GlyphIcon";
 import { t } from "@/lib/i18n";
 
 type Track = {
@@ -20,11 +19,7 @@ type Track = {
 
 type Playlist = { id: string; name: string; slug: string };
 
-export default function AdminPlaylistEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function AdminPlaylistEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const supabase = useMemo(() => getSupabaseBrowser(), []);
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
@@ -41,12 +36,9 @@ export default function AdminPlaylistEditPage({
         .eq("id", id)
         .maybeSingle<Playlist>();
       setPlaylist(pl);
-
       const { data: tr } = await supabase
         .from("curated_tracks")
-        .select(
-          "id, title, artists, album, spotify_release_year, effective_year, notes, is_excluded",
-        )
+        .select("id, title, artists, album, spotify_release_year, effective_year, notes, is_excluded")
         .eq("playlist_id", id)
         .order("effective_year", { ascending: true });
       setTracks((tr ?? []) as Track[]);
@@ -54,9 +46,7 @@ export default function AdminPlaylistEditPage({
   }, [id, supabase]);
 
   function updateLocal(trackId: string, patch: Partial<Track>) {
-    setTracks((prev) =>
-      prev.map((t) => (t.id === trackId ? { ...t, ...patch } : t)),
-    );
+    setTracks((prev) => prev.map((tk) => (tk.id === trackId ? { ...tk, ...patch } : tk)));
     setDirty((prev) => new Set(prev).add(trackId));
   }
 
@@ -66,11 +56,7 @@ export default function AdminPlaylistEditPage({
       const res = await fetch(`/api/admin/tracks/${track.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          effective_year: track.effective_year,
-          notes: track.notes,
-          is_excluded: track.is_excluded,
-        }),
+        body: JSON.stringify({ effective_year: track.effective_year, notes: track.notes, is_excluded: track.is_excluded }),
       });
       if (res.ok) {
         setDirty((prev) => {
@@ -88,100 +74,103 @@ export default function AdminPlaylistEditPage({
 
   if (!playlist) {
     return (
-      <main className="max-w-5xl mx-auto px-6 py-12">
-        <p className="text-muted-foreground">Chargement…</p>
+      <main className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg)", color: "var(--ink)" }}>
+        <p style={{ color: "var(--ink-dim)", padding: 24 }}>Chargement…</p>
       </main>
     );
   }
 
+  const yearInputStyle: React.CSSProperties = {
+    width: 58, flexShrink: 0, textAlign: "center", background: "var(--surface)",
+    border: "1.5px solid var(--line-strong)", borderRadius: 9, padding: "7px 4px",
+    color: "var(--ink)", fontSize: 14, outline: "none", fontFamily: "var(--ff-mono)",
+  };
+
   return (
-    <main className="max-w-5xl mx-auto px-6 py-12 space-y-6">
-      <header>
-        <Link
-          href="/admin/playlists"
-          className="text-sm underline text-muted-foreground"
-        >
+    <main className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg)", color: "var(--ink)" }}>
+      {/* sticky header */}
+      <div className="safe-top" style={{ position: "sticky", top: 0, zIndex: 5, background: "var(--hero-bg)", color: "var(--hero-ink)", padding: "14px 22px 16px" }}>
+        <Link href="/admin/playlists" className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--accent)", padding: 0 }}>
           ← Curation
         </Link>
-        <h1 className="font-display text-4xl font-bold mt-2">{playlist.name}</h1>
-        <p className="text-xs text-muted-foreground font-mono">{playlist.slug}</p>
-      </header>
+        <h1 className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--hero-ink)", letterSpacing: "-0.01em", marginTop: 10, lineHeight: 1.05 }}>{playlist.name}</h1>
+        <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--panel-dim)", marginTop: 8 }}>
+          {playlist.slug} · {tracks.length} pistes
+        </div>
+      </div>
 
-      <div className="rounded-lg border bg-card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b bg-muted/30">
-            <tr className="text-left text-xs uppercase text-muted-foreground">
-              <th className="px-3 py-2">Titre</th>
-              <th className="px-3 py-2 w-20">{t("admin.tracks.year")}</th>
-              <th className="px-3 py-2 w-24">{t("admin.tracks.effective")}</th>
-              <th className="px-3 py-2">{t("admin.tracks.notes")}</th>
-              <th className="px-3 py-2 w-20">{t("admin.tracks.exclude")}</th>
-              <th className="px-3 py-2 w-32"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {tracks.map((tr) => {
-              const isDirty = dirty.has(tr.id);
-              return (
-                <tr
-                  key={tr.id}
-                  className={tr.is_excluded ? "opacity-50" : ""}
-                >
-                  <td className="px-3 py-2 align-top">
-                    <div className="font-medium">{tr.title}</div>
-                    <div className="text-xs text-muted-foreground">{tr.artists}</div>
-                  </td>
-                  <td className="px-3 py-2 align-top text-muted-foreground tabular-nums">
-                    {tr.spotify_release_year}
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    <Input
+      {/* column header */}
+      <div className="tb-mono" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px 8px", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-dim)" }}>
+        <span style={{ flex: 1 }}>Chanson</span>
+        <span style={{ width: 58, textAlign: "center", flexShrink: 0 }}>{t("admin.tracks.effective")}</span>
+        <span style={{ width: 26, textAlign: "center", flexShrink: 0 }}>Sp.</span>
+      </div>
+
+      <div className="safe-bottom" style={{ padding: "0 8px 24px" }}>
+        <div className="tb-card" style={{ overflow: "hidden", padding: 0 }}>
+          {tracks.map((tr, i) => {
+            const isDirty = dirty.has(tr.id);
+            return (
+              <div key={tr.id} style={{ opacity: tr.is_excluded ? 0.5 : 1 }}>
+                {i > 0 && <div style={{ height: 1, background: "var(--line)" }} />}
+                <div style={{ padding: "12px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="font-display" style={{ fontWeight: 600, fontSize: 16, color: "var(--ink)", lineHeight: 1.15, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tr.title}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--ink-dim)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {tr.artists}
+                        <span style={{ marginLeft: 6, opacity: 0.7 }}>· {t("admin.tracks.year")} {tr.spotify_release_year}</span>
+                      </div>
+                    </div>
+                    <input
                       type="number"
                       min={1900}
                       max={2100}
                       value={tr.effective_year}
-                      onChange={(e) =>
-                        updateLocal(tr.id, {
-                          effective_year: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      className="h-8 w-20 tabular-nums"
+                      onChange={(e) => updateLocal(tr.id, { effective_year: parseInt(e.target.value) || 0 })}
+                      className="tb-mono"
+                      style={yearInputStyle}
                     />
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    <Input
+                    <span title="Lié à Spotify" style={{ flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", width: 26, height: 26 }}>
+                      <GlyphIcon kind="spotify" size={20} color="var(--spotify)" />
+                    </span>
+                  </div>
+
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                    <input
                       value={tr.notes ?? ""}
                       onChange={(e) => updateLocal(tr.id, { notes: e.target.value })}
-                      className="h-8"
-                      placeholder="ex. Remastérisé 2011"
+                      placeholder={t("admin.tracks.notes")}
+                      style={{ flex: 1, minWidth: 0, background: "var(--surface)", border: "1.5px solid var(--line)", borderRadius: 9, padding: "7px 10px", color: "var(--ink)", fontSize: 12.5, outline: "none" }}
                     />
-                  </td>
-                  <td className="px-3 py-2 align-top text-center">
-                    <input
-                      type="checkbox"
-                      checked={tr.is_excluded}
-                      onChange={(e) =>
-                        updateLocal(tr.id, { is_excluded: e.target.checked })
-                      }
-                    />
-                  </td>
-                  <td className="px-3 py-2 align-top">
-                    <Button
-                      size="sm"
-                      variant={isDirty ? "default" : "ghost"}
+                    <label className="tb-mono" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-dim)", flexShrink: 0, cursor: "pointer" }}>
+                      <input type="checkbox" checked={tr.is_excluded} onChange={(e) => updateLocal(tr.id, { is_excluded: e.target.checked })} />
+                      {t("admin.tracks.exclude")}
+                    </label>
+                    <button
                       onClick={() => save(tr)}
                       disabled={!isDirty || savingId === tr.id}
+                      className="tb-mono"
+                      style={{
+                        flexShrink: 0, padding: "7px 12px", borderRadius: 9, fontSize: 11, letterSpacing: "0.06em",
+                        textTransform: "uppercase", cursor: isDirty ? "pointer" : "default",
+                        background: isDirty ? "var(--accent)" : "transparent",
+                        color: isDirty ? "var(--accent-ink)" : "var(--ink-dim)",
+                        border: isDirty ? "none" : "1px solid var(--line)",
+                        opacity: !isDirty || savingId === tr.id ? 0.6 : 1,
+                      }}
                     >
-                      {savedId === tr.id
-                        ? t("admin.tracks.saved")
-                        : t("admin.tracks.save")}
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      {savedId === tr.id ? t("admin.tracks.saved") : t("admin.tracks.save")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 12.5, color: "var(--ink-dim)", textAlign: "center", marginTop: 16, fontStyle: "italic" }}>
+          Édite l&apos;année si Spotify s&apos;est trompé.
+        </p>
       </div>
     </main>
   );

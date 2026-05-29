@@ -33,7 +33,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#2D1B12",
+  themeColor: "#0A1220",
 };
 
 export default function RootLayout({
@@ -46,7 +46,24 @@ export default function RootLayout({
       lang="fr"
       className={`${inter.variable} ${fraunces.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body
+        className="min-h-full flex flex-col font-sans"
+        style={{ background: "#070b12" }}
+      >
+        {/* Colonne mobile centrée — l'app est avant tout une app iOS (Capacitor).
+            Sur le web, le contenu reste dans un téléphone navy centré. */}
+        <div
+          className="tb mx-auto flex w-full flex-1 flex-col"
+          style={{
+            maxWidth: 460,
+            background: "var(--bg)",
+            color: "var(--ink)",
+            boxShadow: "0 0 60px rgba(0,0,0,0.5)",
+          }}
+        >
+          {children}
+        </div>
+      </body>
     </html>
   );
 }

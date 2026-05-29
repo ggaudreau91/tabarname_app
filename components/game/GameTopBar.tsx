@@ -1,7 +1,5 @@
 "use client";
 
-import { MetaLabel } from "@/components/brand/Stamp";
-
 type Props = {
   code: string;
   turnNumber: number;
@@ -10,90 +8,39 @@ type Props = {
   onSettings?: () => void;
 };
 
-export function GameTopBar({
-  code,
-  turnNumber,
-  leaderLabel,
-  leaderCards,
-  onSettings,
-}: Props) {
+export function GameTopBar({ code, turnNumber, leaderLabel, leaderCards, onSettings }: Props) {
+  const formatted = code.replace(/^(.{3})(.{3})$/, "$1·$2");
   return (
     <div
-      className="safe-top flex items-center justify-between flex-wrap gap-3 px-4 sm:px-6 pb-4"
+      className="safe-top tb"
       style={{
-        background: "var(--brun)",
-        color: "var(--creme)",
-        borderBottom: "2px solid var(--or)",
-        // base de padding-top (le py-4 reste pour le bas via padding-bottom)
-        ["--safe-top-base" as string]: "16px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 20px", background: "var(--panel)", color: "var(--panel-ink)",
+        ["--safe-top-base" as string]: "12px",
       }}
     >
-      <div className="flex items-center gap-4 sm:gap-6">
-        <div className="flex items-center gap-2">
-          <div
-            className="relative flex items-center justify-center rounded-full"
-            style={{
-              width: 22,
-              height: 22,
-              background: "var(--oxblood)",
-            }}
-          >
-            <div
-              className="rounded-full"
-              style={{ width: 6, height: 6, background: "var(--creme)" }}
-            />
-          </div>
-          <div
-            className="font-display italic font-bold"
-            style={{ fontSize: 16 }}
-          >
-            Tabarname
-          </div>
-        </div>
-        <div
-          style={{
-            width: 1,
-            height: 24,
-            background: "rgba(250,246,240,0.2)",
-          }}
-        />
-        <div className="flex items-center gap-3.5">
-          <MetaLabel color="var(--or)">Tour {turnNumber}</MetaLabel>
-          <div
-            className="font-mono"
-            style={{
-              fontSize: 13,
-              color: "rgba(250,246,240,0.7)",
-              letterSpacing: "0.1em",
-            }}
-          >
-            SALLE {code.replace(/^(.{3})(.{3})$/, "$1·$2")}
-          </div>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+        <span style={{ width: 22, height: 22, borderRadius: "50%", background: "var(--wine)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--gold)" }} />
+        </span>
+        <span className="font-display italic" style={{ fontWeight: 600, fontSize: 17, color: "var(--panel-ink)" }}>Tabarname</span>
       </div>
-      <div className="flex items-center gap-5">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         {leaderLabel && (
-          <div className="hidden sm:block" style={{ fontSize: 13, color: "rgba(250,246,240,0.7)" }}>
-            <span style={{ color: "var(--or)", fontWeight: 600 }}>
-              {leaderLabel}
-            </span>{" "}
-            mène à {leaderCards} cartes
-          </div>
+          <span style={{ fontSize: 12, color: "var(--panel-dim)" }}>
+            <span style={{ color: "var(--gold)", fontWeight: 600 }}>{leaderLabel}</span> · {leaderCards}
+          </span>
         )}
+        <span className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.1em", color: "var(--gold)", textTransform: "uppercase", whiteSpace: "nowrap" }}>
+          Tour {turnNumber} · {formatted}
+        </span>
         {onSettings && (
           <button
             onClick={onSettings}
-            style={{
-              background: "transparent",
-              color: "var(--creme)",
-              border: "1px solid rgba(250,246,240,0.25)",
-              padding: "6px 14px",
-              borderRadius: 4,
-              fontSize: 12,
-              fontWeight: 500,
-            }}
+            style={{ background: "transparent", color: "var(--panel-ink)", border: "1px solid var(--panel-line)", padding: "5px 10px", borderRadius: 8, fontSize: 12, cursor: "pointer" }}
+            aria-label="Paramètres"
           >
-            ⚙ Paramètres
+            ⚙
           </button>
         )}
       </div>

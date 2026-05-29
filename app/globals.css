@@ -4,94 +4,116 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ---------------------------------------------------------------------------
- * Tabarname — palette "vinyl club québécois"
- *   Hex exacts du design Stitch (Tabarname Design.html):
- *     creme    #FAF6F0
- *     creme-2  #F4EDE0
- *     creme-3  #EBE0CC
- *     oxblood  #8B2331
- *     oxblood-deep #6B1A26
- *     or       #D4A656
- *     or-deep  #B88837
- *     brun     #2D1B12
- *     brun-2   #4A2F20
- *     brun-mid #6E4A35
- *     nuit     #1A0F09
+ * Tabarname — palette "Nuit de vinyle" (direction retenue par l'utilisateur)
+ *   Bleu nuit profond + or. Charte unique, sombre, cohérente — zéro brun chaud.
+ *   Hex exacts de la maquette (Claude Design — Tabarname 3 directions, .dir-a).
  * --------------------------------------------------------------------------- */
 :root {
   --radius: 0.625rem;
 
-  /* Palette brute exposée pour les composants brand */
-  --creme: #FAF6F0;
-  --creme-2: #F4EDE0;
-  --creme-3: #EBE0CC;
-  --oxblood: #8B2331;
-  --oxblood-deep: #6B1A26;
-  --or: #D4A656;
-  --or-deep: #B88837;
-  --brun: #2D1B12;
-  --brun-2: #4A2F20;
-  --brun-mid: #6E4A35;
-  --nuit: #1A0F09;
-  --nuit-2: #261810;
-  --green-spotify: #1DB954;
-  --green-pret: #3D6B54;
+  /* ---- Polices ---- */
+  --ff-display: var(--font-display), Georgia, serif;
+  --ff-body: var(--font-sans), system-ui, sans-serif;
+  --ff-mono: var(--font-mono), ui-monospace, monospace;
 
-  /* Tokens shadcn dérivés */
-  --background: var(--creme);
-  --foreground: var(--brun);
-  --card: var(--creme);
-  --card-foreground: var(--brun);
-  --popover: var(--creme);
-  --popover-foreground: var(--brun);
-  --primary: var(--oxblood);
-  --primary-foreground: var(--creme);
-  --secondary: var(--creme-2);
-  --secondary-foreground: var(--brun);
-  --muted: var(--creme-2);
-  --muted-foreground: var(--brun-mid);
-  --accent: var(--or);
-  --accent-foreground: var(--brun);
-  --destructive: var(--oxblood);
-  --border: var(--creme-3);
-  --input: var(--creme-3);
-  --ring: var(--oxblood);
+  /* ---- Constantes de marque (partagées) ---- */
+  --wine: #7E1E2B;
+  --wine-deep: #641520;
+  --gold: #D2A24C;
+  --gold-soft: #E2BC73;
+  --gold-deep: #B07F2C;
+  --spotify: #1DB954;
 
-  --chart-1: var(--oxblood);
-  --chart-2: var(--or);
-  --chart-3: var(--brun);
+  /* ---- Surfaces / encre / lignes (Nuit de vinyle) ---- */
+  --bg: #0E1622;
+  --bg-grad: radial-gradient(130% 90% at 50% -5%, #213a55 0%, #15263a 45%, #090f18 100%);
+  --surface: #182636;
+  --surface-2: #131F2C;
+  --surface-sunken: #0D1622;
+  --ink: #F1EFE6;
+  --ink-2: #C6D3E1;
+  --ink-dim: #7B8EA3;
+  --line: rgba(225, 234, 245, 0.12);
+  --line-strong: rgba(225, 234, 245, 0.24);
+
+  /* ---- Accent / panneaux / hero ---- */
+  --accent: var(--gold);
+  --accent-ink: #10202F;
+  --gold-ink: var(--gold);
+  --panel: #0A1220;
+  --panel-2: #131F2C;
+  --panel-ink: #F1EFE6;
+  --panel-dim: #7B8EA3;
+  --panel-line: rgba(225, 234, 245, 0.10);
+  --hero-bg: #0A1220;
+  --hero-ink: #F1EFE6;
+
+  /* ---- Motifs / états ---- */
+  --card-stripe-a: #2C5C86;
+  --card-stripe-b: #21486A;
+  --year-ink: var(--gold);
+  --stamp-ink: var(--gold);
+  --disabled-bg: #28394C;
+  --disabled-ink: #8698AD;
+
+  /* ---- Teintes d'avatars (froides, sans brun) ---- */
+  --ava-1-bg: #2C4A66; --ava-1-ink: #EAF1FA;
+  --ava-2-bg: var(--gold); --ava-2-ink: #16263a;
+  --ava-3-bg: #3D6B7A; --ava-3-ink: #EAF6FA;
+  --ava-4-bg: #4A4170; --ava-4-ink: #EFEAFA;
+
+  /* ---------------------------------------------------------------------------
+   * Alias hérités — repointés vers la charte sombre par rôle sémantique, afin
+   * que les composants brand encore référencés rendent correctement.
+   * --------------------------------------------------------------------------- */
+  --creme: #F1EFE6;          /* désormais = encre claire */
+  --creme-2: var(--surface-2);
+  --creme-3: var(--line);
+  --oxblood: var(--wine);    /* conservé pour le dos de carte vin */
+  --oxblood-deep: var(--wine-deep);
+  --or: var(--gold);
+  --or-deep: var(--gold-deep);
+  --brun: var(--panel);      /* anciennes sections sombres → panneau navy */
+  --brun-2: var(--surface-2);
+  --brun-mid: var(--ink-dim);
+  --nuit: #090F18;
+  --nuit-2: var(--surface-sunken);
+  --green-spotify: var(--spotify);
+  --green-pret: #2E7D4B;
+
+  /* ---- Tokens shadcn (remappés sur la charte navy) ---- */
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--accent);
+  --primary-foreground: var(--accent-ink);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--ink-dim);
+  --accent-foreground: var(--accent-ink);
+  --destructive: #D9606E;
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--accent);
+
+  --chart-1: var(--wine);
+  --chart-2: var(--gold);
+  --chart-3: var(--ink-2);
   --chart-4: var(--green-pret);
-  --chart-5: var(--brun-mid);
+  --chart-5: var(--ink-dim);
 
-  --sidebar: var(--creme);
-  --sidebar-foreground: var(--brun);
-  --sidebar-primary: var(--oxblood);
-  --sidebar-primary-foreground: var(--creme);
-  --sidebar-accent: var(--creme-2);
-  --sidebar-accent-foreground: var(--brun);
-  --sidebar-border: var(--creme-3);
-  --sidebar-ring: var(--oxblood);
-}
-
-.dark {
-  --background: var(--nuit);
-  --foreground: var(--creme);
-  --card: var(--brun);
-  --card-foreground: var(--creme);
-  --popover: var(--brun);
-  --popover-foreground: var(--creme);
-  --primary: var(--or);
-  --primary-foreground: var(--brun);
-  --secondary: var(--brun-2);
-  --secondary-foreground: var(--creme);
-  --muted: var(--brun-2);
-  --muted-foreground: #B89C7E;
-  --accent: var(--or);
-  --accent-foreground: var(--brun);
-  --destructive: var(--oxblood);
-  --border: rgba(250, 246, 240, 0.12);
-  --input: rgba(250, 246, 240, 0.15);
-  --ring: var(--or);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--accent-ink);
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--accent);
 }
 
 @theme inline {
@@ -216,4 +238,209 @@
   .animate-pop-in {
     animation: none;
   }
+}
+
+/* ============================================================
+   Classes de composants "Nuit de vinyle" (maquette Claude Design)
+   ============================================================ */
+
+/* reset interne aux écrans */
+.tb {
+  box-sizing: border-box;
+  font-family: var(--ff-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.tb *, .tb *::before, .tb *::after { box-sizing: border-box; }
+.tb :where(h1, h2, h3, h4, p) { margin: 0; }
+.tb :where(button) { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+
+/* kicker / eyebrow */
+.tb-kicker {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.tb-mono { font-family: var(--ff-mono); }
+
+/* CTA principal */
+.tb-btn {
+  font-family: var(--ff-body);
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  line-height: 1.1;
+  transition: transform .12s ease, filter .15s ease, background .15s ease;
+  white-space: nowrap;
+}
+.tb-btn:active { transform: translateY(1px) scale(0.995); }
+.tb-btn--wine { background: var(--wine); color: #FBF7EC; }
+.tb-btn--wine:hover { filter: brightness(1.07); }
+.tb-btn--accent { background: var(--accent); color: var(--accent-ink); }
+.tb-btn--accent:hover { filter: brightness(1.06); }
+.tb-btn--gold { background: var(--gold); color: #2A1810; }
+.tb-btn--gold:hover { filter: brightness(1.05); }
+.tb-btn--spotify { background: var(--spotify); color: #06210F; }
+.tb-btn--ghost {
+  background: transparent;
+  border: 1.5px solid var(--line-strong);
+  color: var(--ink);
+}
+.tb-btn--block { width: 100%; }
+.tb-btn[disabled] {
+  background: var(--disabled-bg);
+  color: var(--disabled-ink);
+  cursor: not-allowed;
+  filter: none;
+}
+.tb-btn[disabled]:active { transform: none; }
+
+/* avatar monogramme */
+.tb-ava {
+  border-radius: 999px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-display);
+  font-weight: 600;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* tampon caoutchouc */
+.tb-stamp {
+  font-family: var(--ff-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1.5px solid var(--stamp-ink, var(--wine));
+  color: var(--stamp-ink, var(--wine));
+  border-radius: 7px;
+  padding: 7px 11px;
+  display: inline-block;
+  transform: rotate(-3deg);
+}
+
+/* pastille de statut */
+.tb-pill {
+  font-family: var(--ff-mono);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 999px;
+  display: inline-flex; align-items: center; gap: 5px;
+  white-space: nowrap;
+}
+
+/* surface carte */
+.tb-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+/* contrôle segmenté */
+.tb-seg {
+  display: inline-flex;
+  background: var(--surface-sunken);
+  border-radius: 12px;
+  padding: 4px;
+  gap: 2px;
+}
+.tb-seg button {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  border-radius: 9px;
+  color: var(--ink-dim);
+  font-weight: 500;
+}
+.tb-seg button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* scrollbar discrète */
+.tb-scroll::-webkit-scrollbar { width: 0; height: 0; }
+.tb-scroll { scrollbar-width: none; }
+
+/* champ texte */
+.tb-input {
+  font-family: var(--ff-display);
+  font-size: 19px;
+  width: 100%;
+  background: var(--surface);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color .15s ease;
+}
+.tb-input::placeholder { color: var(--ink-dim); opacity: 0.8; }
+.tb-input:focus { border-color: var(--accent); }
+
+/* case de code */
+.tb-codebox {
+  font-family: var(--ff-display);
+  font-weight: 600;
+  font-size: 26px;
+  text-align: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  background: var(--surface);
+  border: 2px solid var(--line-strong);
+  border-radius: 12px;
+  color: var(--ink);
+  outline: none;
+  text-transform: uppercase;
+}
+.tb-codebox:focus { border-color: var(--accent); }
+
+/* états des emplacements de la timeline */
+.tb-slot {
+  border: 2px dashed var(--line-strong);
+  border-radius: 12px;
+  background: transparent;
+  transition: background .15s ease, border-color .15s ease, transform .12s ease;
+  cursor: pointer;
+}
+.tb-slot:hover { background: rgba(210,162,76,0.10); border-color: var(--gold); }
+.tb-slot[data-active="true"] {
+  border-style: solid; border-color: var(--gold);
+  background: rgba(210,162,76,0.14);
+  animation: tb-slot-glow 1.6s ease-in-out infinite;
+}
+
+/* ---- animations "Nuit de vinyle" ---- */
+@keyframes tb-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes tb-spin { to { transform: rotate(360deg); } }
+@keyframes tb-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+@keyframes tb-slot-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(210,162,76,0.0); }
+  50% { box-shadow: 0 0 0 4px rgba(210,162,76,0.25); }
+}
+@keyframes tb-card-in { from { opacity: 0; transform: translateY(8px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+.tb-marquee-track {
+  display: inline-flex; gap: 0; white-space: nowrap;
+  animation: tb-marquee 26s linear infinite;
+}
+.tb-spin-slow { animation: tb-spin 8s linear infinite; }
+.tb-pulse-dot { animation: tb-pulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-marquee-track, .tb-spin-slow, .tb-pulse-dot { animation: none; }
+  .tb-slot[data-active="true"] { animation: none; }
 }

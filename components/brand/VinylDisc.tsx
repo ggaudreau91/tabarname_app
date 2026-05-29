@@ -6,10 +6,10 @@ type Props = {
 };
 
 // Disque vinyle SVG avec grooves, étiquette "Tabarname" et indication RPM.
-// Reproduit exactement le design Stitch.
+// Charte "Nuit de vinyle" : étiquette or, texte sombre sur l'étiquette, gomme neutre.
 export function VinylDisc({
   size = 220,
-  labelColor = "var(--oxblood)",
+  labelColor = "var(--gold)",
   spinning = false,
   label = "45 RPM",
 }: Props) {
@@ -35,12 +35,14 @@ export function VinylDisc({
       width={size}
       height={size}
       viewBox={`0 0 ${size} ${size}`}
-      style={{ animation: spinning ? "spin 6s linear infinite" : "none" }}
+      aria-hidden="true"
+      style={{ animation: spinning ? "tb-spin 6s linear infinite" : "none" }}
     >
       <defs>
-        <radialGradient id={id} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#1a0a05" />
-          <stop offset="100%" stopColor="#000" />
+        <radialGradient id={id} cx="38%" cy="32%" r="80%">
+          <stop offset="0%" stopColor="#3a3a3a" />
+          <stop offset="55%" stopColor="#161616" />
+          <stop offset="100%" stopColor="#050505" />
         </radialGradient>
       </defs>
       <circle cx={r} cy={r} r={r - 1} fill={`url(#${id})`} />
@@ -68,7 +70,7 @@ export function VinylDisc({
         fontStyle="italic"
         fontSize={r * 0.11}
         fontWeight="700"
-        fill="var(--creme)"
+        fill="#16263a"
       >
         Tabarname
       </text>
@@ -78,12 +80,12 @@ export function VinylDisc({
         textAnchor="middle"
         fontFamily="var(--font-mono), monospace"
         fontSize={r * 0.065}
-        fill="var(--creme)"
+        fill="#16263a"
         letterSpacing="2"
       >
         {label}
       </text>
-      <circle cx={r} cy={r} r={r * 0.04} fill="var(--creme)" />
+      <circle cx={r} cy={r} r={r * 0.04} fill="#0b0b0b" />
       <circle cx={r} cy={r} r={r * 0.025} fill="#000" />
     </svg>
   );
