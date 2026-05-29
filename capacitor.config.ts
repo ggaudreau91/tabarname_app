@@ -19,6 +19,10 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: false,
+    // Garde le flux OAuth Spotify À L'INTÉRIEUR de la WebView. Sans ça,
+    // Capacitor ouvre accounts.spotify.com dans Safari externe et le callback
+    // n'y revient jamais → impossible de lier le compte dans l'app native.
+    allowNavigation: ["accounts.spotify.com", "*.spotify.com"],
   },
   ios: {
     // Le scheme de redirection App Remote est aussi déclaré dans Info.plist.
