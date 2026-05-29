@@ -15,6 +15,7 @@ public class SpotifyRemotePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "SpotifyRemotePlugin"
     public let jsName = "SpotifyRemote"
     public let pluginMethods: [CAPPluginMethod] = [
+        CAPPluginMethod(name: "authorize", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "connect", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "disconnect", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "playUri", returnType: CAPPluginReturnPromise),
@@ -41,7 +42,26 @@ public class SpotifyRemotePlugin: CAPPlugin, CAPBridgedPlugin {
         return SPTConfiguration(clientID: clientID, redirectURL: URL(string: redirect)!)
     }()
 
+    // Gère l'autorisation app-à-app (bascule vers l'app Spotify, « Accepter »).
+    // Créé à la volée dans authorize() APRÈS avoir fixé tokenSwapURL /
+    // tokenRefreshURL sur la configuration (le SDK les lit à la construction).
+    // Conservé pour router le callback du redirect (handleOpenURL).
+    private var sessionManager: SPTSessionManager?
+
+    // Scopes demandés — doivent matcher SPOTIFY_SCOPES de lib/spotify/oauth.ts.
+    private let scopes: SPTScope = [
+        .streaming,
+        .userReadEmail,
+        .userReadPrivate,
+        .userModifyPlaybackState,
+        .userReadPlaybackState,
+        .appRemoteControl,
+        .playlistReadPrivate,
+        .playlistReadCollaborative,
+    ]
+
     private var pendingConnectCall: CAPPluginCall?
+    private var pendingAuthorizeCall: CAPPluginCall?
     private var lastPlayerState: SPTAppRemotePlayerState?
 
     public override func load() {
@@ -49,6 +69,34 @@ public class SpotifyRemotePlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     // MARK: - Méthodes exposées au JS
+
+    // Autorisation app-à-app: bascule vers l'app Spotify installée (« Accepter »,
+    // pas de username/password). Le SDK POST le code à tokenSwapURL (notre backend)
+    // qui stocke les tokens et répond. Si Spotify n'est pas installé, on rejette
+    // avec "spotify_not_installed" → le JS retombe sur le login web (PKCE).
+    @objc func authorize(_ call: CAPPluginCall) {
+        guard let nonce = call.getString("nonce"), !nonce.isEmpty,
+              let base = call.getString("swapBaseUrl"), !base.isEmpty else {
+            call.reject("nonce / swapBaseUrl manquant")
+            return
+        }
+        DispatchQueue.main.async {
+            // Fixer les URLs de swap/refresh AVANT de créer le session manager
+            // (le SDK lit la configuration à la construction).
+            let encodedNonce = nonce.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? nonce
+            self.configuration.tokenSwapURL = URL(string: "\(base)/api/spotify/native/token-swap?nonce=\(encodedNonce)")
+            self.configuration.tokenRefreshURL = URL(string: "\(base)/api/spotify/native/token-refresh")
+
+            let manager = SPTSessionManager(configuration: self.configuration, delegate: self)
+            guard manager.isSpotifyAppInstalled else {
+                call.reject("Spotify n'est pas installé", "spotify_not_installed")
+                return
+            }
+            self.sessionManager = manager
+            self.pendingAuthorizeCall = call
+            manager.initiateSession(with: self.scopes, options: .default, campaign: nil)
+        }
+    }
 
     @objc func connect(_ call: CAPPluginCall) {
         guard let token = call.getString("token"), !token.isEmpty else {
@@ -133,8 +181,16 @@ public class SpotifyRemotePlugin: CAPPlugin, CAPBridgedPlugin {
         ]
     }
 
-    // Appelé par l'AppDelegate sur retour du redirect URI.
-    func handleOpenURL(_ url: URL) {
+    // Appelé par l'AppDelegate sur retour du redirect URI. Deux producteurs
+    // partagent le même scheme (tabarname-spotify://callback): le SPTSessionManager
+    // (auth app-à-app) et l'ancien chemin App Remote (authorizeAndPlayURI). Si une
+    // autorisation est en attente, on route vers le session manager; sinon on
+    // retombe sur le parsing App Remote (token directement dans l'URL).
+    func handleOpenURL(_ app: UIApplication, _ url: URL, _ options: [UIApplication.OpenURLOptionsKey: Any]) {
+        if pendingAuthorizeCall != nil, let manager = sessionManager {
+            manager.application(app, open: url, options: options)
+            return
+        }
         let params = appRemote.authorizationParameters(from: url)
         if let token = params?[SPTAppRemoteAccessTokenKey] {
             appRemote.connectionParameters.accessToken = token
@@ -143,6 +199,24 @@ public class SpotifyRemotePlugin: CAPPlugin, CAPBridgedPlugin {
             pendingConnectCall?.reject(error)
             pendingConnectCall = nil
         }
+    }
+}
+
+// MARK: - SPTSessionManagerDelegate
+
+extension SpotifyRemotePlugin: SPTSessionManagerDelegate {
+    public func sessionManager(manager: SPTSessionManager, didInitiate session: SPTSession) {
+        // Les tokens sont déjà stockés côté serveur par le token-swap. On signale
+        // juste au JS qui (re)fetch l'access token serveur et appelle connect().
+        notifyListeners("authorized", data: [:])
+        pendingAuthorizeCall?.resolve(["authorized": true])
+        pendingAuthorizeCall = nil
+    }
+
+    public func sessionManager(manager: SPTSessionManager, didFailWith error: Error) {
+        notifyListeners("authError", data: ["error": error.localizedDescription])
+        pendingAuthorizeCall?.reject(error.localizedDescription)
+        pendingAuthorizeCall = nil
     }
 }
 

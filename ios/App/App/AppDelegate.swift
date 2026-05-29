@@ -34,9 +34,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
-        // Callback du redirect URI Spotify (App Remote) → on le route vers le
-        // plugin pour récupérer le token et finaliser la connexion.
-        SpotifyRemotePlugin.shared?.handleOpenURL(url)
+        // Callback du redirect URI Spotify (auth app-à-app OU App Remote) → on le
+        // route vers le plugin pour finaliser la session / la connexion.
+        SpotifyRemotePlugin.shared?.handleOpenURL(app, url, options)
         // Called when the app was launched with a url. Feel free to add additional processing here,
         // but if you want the App API to support tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(app, open: url, options: options)

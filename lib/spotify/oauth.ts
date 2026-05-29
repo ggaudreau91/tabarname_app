@@ -24,6 +24,10 @@ export const SPOTIFY_SCOPES = [
 export const PKCE_COOKIE = "spotify_pkce_verifier";
 export const STATE_COOKIE = "spotify_oauth_state";
 
+// Redirect URI du flow app-à-app iOS (SDK Spotify). Doit matcher SpotifyRedirectURL
+// dans ios/App/App/Info.plist ET être enregistré dans le Spotify Developer Dashboard.
+export const SPOTIFY_NATIVE_REDIRECT_URI = "tabarname-spotify://callback";
+
 function base64UrlEncode(buf: Buffer): string {
   return buf
     .toString("base64")
@@ -98,6 +102,40 @@ export async function exchangeCodeForTokens(params: {
 
   if (!res.ok) {
     throw new Error(`Spotify token exchange failed: ${res.status} ${await res.text()}`);
+  }
+
+  return (await res.json()) as SpotifyTokenResponse;
+}
+
+// Échange confidential-client (avec client_secret, SANS code_verifier). Utilisé
+// par le token-swap de l'auth app-à-app iOS: c'est le SDK Spotify qui obtient le
+// code, et notre serveur (qui détient le secret) fait l'échange. Le flow web, lui,
+// reste public-client/PKCE via exchangeCodeForTokens ci-dessus.
+export async function exchangeCodeForTokensConfidential(params: {
+  code: string;
+  redirectUri: string;
+  clientId: string;
+  clientSecret: string;
+}): Promise<SpotifyTokenResponse> {
+  const body = new URLSearchParams({
+    grant_type: "authorization_code",
+    code: params.code,
+    redirect_uri: params.redirectUri,
+  });
+
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization:
+        "Basic " +
+        Buffer.from(`${params.clientId}:${params.clientSecret}`).toString("base64"),
+    },
+    body,
+  });
+
+  if (!res.ok) {
+    throw new Error(`Spotify token exchange (confidential) failed: ${res.status} ${await res.text()}`);
   }
 
   return (await res.json()) as SpotifyTokenResponse;

@@ -18,6 +18,7 @@ import { getSupabaseBrowser } from "@/lib/supabase/browser";
 import {
   useSpotifyPlayer,
   isLikelySdkUnsupported,
+  connectSpotify,
 } from "@/components/spotify/SpotifyPlayerProvider";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
@@ -984,8 +985,9 @@ export default function NewPartyPage() {
               En tant qu&apos;hôte, c&apos;est toi qui lances la musique — un
               compte Spotify Premium est nécessaire, peu importe le mode.
             </p>
-            <a
-              href="/api/spotify/login?return_to=/parties/nouvelle"
+            <button
+              type="button"
+              onClick={() => connectSpotify("/parties/nouvelle")}
               className="inline-flex items-center justify-center rounded-md font-semibold"
               style={{
                 background: "var(--green-spotify)",
@@ -995,7 +997,7 @@ export default function NewPartyPage() {
               }}
             >
               Se connecter avec Spotify
-            </a>
+            </button>
           </div>
         )}
 

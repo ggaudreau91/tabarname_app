@@ -97,6 +97,42 @@ async function transferPlayback(token: string, deviceId: string): Promise<void> 
   }
 }
 
+/**
+ * Lance la connexion Spotify selon la plateforme:
+ *  - App iOS native: autorisation app-à-app (bascule vers l'app Spotify, sans
+ *    username/password). Si Spotify n'est pas installé, fallback login web.
+ *  - Web (desktop / iOS Safari): login web PKCE classique.
+ * En natif, le succès émet l'event "authorized" → le provider (re)connecte
+ * l'App Remote avec le token serveur fraîchement stocké.
+ */
+export async function connectSpotify(returnTo?: string): Promise<void> {
+  const target =
+    returnTo ?? (typeof window !== "undefined" ? window.location.pathname : "/");
+  const webLogin = `/api/spotify/login?return_to=${encodeURIComponent(target)}`;
+
+  if (!Capacitor.isNativePlatform()) {
+    window.location.href = webLogin;
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/spotify/native/nonce", { cache: "no-store" });
+    if (!res.ok) throw new Error(`nonce failed: ${res.status}`);
+    const { nonce } = (await res.json()) as { nonce: string };
+    await SpotifyRemote.authorize({ nonce, swapBaseUrl: window.location.origin });
+  } catch (e) {
+    const code = (e as { code?: string })?.code;
+    const msg = e instanceof Error ? e.message : String(e);
+    // Spotify pas installé → on retombe sur le login web (autorisé dans la
+    // WebView par allowNavigation, cf. capacitor.config.ts).
+    if (code === "spotify_not_installed" || /spotify_not_installed|not installed/i.test(msg)) {
+      window.location.href = webLogin;
+      return;
+    }
+    throw e;
+  }
+}
+
 export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<"sdk" | "connect" | "native">("sdk");
   const [sdkDeviceId, setSdkDeviceId] = useState<string | null>(null);
@@ -263,23 +299,13 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     const handles: Array<Promise<{ remove: () => void }>> = [];
 
-    (async () => {
+    // Connecte l'App Remote avec l'access token serveur. No-op s'il n'y a pas
+    // encore de lien Spotify (token null) → l'utilisateur déclenchera l'auth
+    // app-à-app via connectSpotify(), dont le succès émet "authorized".
+    const connectWithServerToken = async () => {
       const tokenData = await fetchAccessToken();
-      if (cancelled) return;
-      if (tokenData) setProduct(tokenData.product);
-      if (!tokenData) return;
-
-      handles.push(
-        SpotifyRemote.addListener("connected", () => setNativeConnected(true)),
-        SpotifyRemote.addListener("disconnected", ({ error }) => {
-          setNativeConnected(false);
-          if (error) console.warn("[spotify-native] disconnected", error);
-        }),
-        SpotifyRemote.addListener("stateChanged", (st: NativePlayerState) => {
-          setIsPlaying(!st.isPaused);
-        }),
-      );
-
+      if (cancelled || !tokenData) return;
+      setProduct(tokenData.product);
       try {
         const { connected } = await SpotifyRemote.connect({
           token: tokenData.access_token,
@@ -295,7 +321,28 @@ export function SpotifyPlayerProvider({ children }: { children: ReactNode }) {
       // Peupler la liste Connect pour permettre de transférer le son vers une
       // enceinte/TV pendant la partie (sans auto-select, cf. refreshDevices).
       if (!cancelled) refreshDevices();
-    })();
+    };
+
+    handles.push(
+      SpotifyRemote.addListener("connected", () => setNativeConnected(true)),
+      SpotifyRemote.addListener("disconnected", ({ error }) => {
+        setNativeConnected(false);
+        if (error) console.warn("[spotify-native] disconnected", error);
+      }),
+      SpotifyRemote.addListener("stateChanged", (st: NativePlayerState) => {
+        setIsPlaying(!st.isPaused);
+      }),
+      // Auth app-à-app réussie: les tokens sont stockés côté serveur → on
+      // (re)connecte l'App Remote avec le token serveur.
+      SpotifyRemote.addListener("authorized", () => {
+        void connectWithServerToken();
+      }),
+      SpotifyRemote.addListener("authError", ({ error }) => {
+        if (!cancelled && error) setError(`Spotify: ${error}`);
+      }),
+    );
+
+    void connectWithServerToken();
 
     const devicesPoll = setInterval(() => refreshDevices(), 8000);
 

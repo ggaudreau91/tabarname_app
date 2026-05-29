@@ -15,6 +15,17 @@ export type NativePlayerState = {
 
 export interface SpotifyRemotePlugin {
   /**
+   * Autorisation app-à-app: bascule vers l'app Spotify installée (« Accepter »,
+   * sans username/password). Le SDK POST le code à
+   * `{swapBaseUrl}/api/spotify/native/token-swap?nonce={nonce}` qui stocke les
+   * tokens côté serveur. Rejette avec le code "spotify_not_installed" si l'app
+   * Spotify n'est pas installée → le JS retombe sur le login web.
+   */
+  authorize(options: {
+    nonce: string;
+    swapBaseUrl: string;
+  }): Promise<{ authorized: boolean }>;
+  /**
    * Connecte l'App Remote. Si l'app Spotify n'est pas lancée, le natif appelle
    * authorizeAndPlayURI pour la réveiller. `token` = access token Spotify
    * (scope app-remote-control requis), fourni par /api/spotify/access-token.
@@ -37,6 +48,14 @@ export interface SpotifyRemotePlugin {
   addListener(
     eventName: "stateChanged",
     listener: (state: NativePlayerState) => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    eventName: "authorized",
+    listener: () => void,
+  ): Promise<PluginListenerHandle>;
+  addListener(
+    eventName: "authError",
+    listener: (data: { error?: string }) => void,
   ): Promise<PluginListenerHandle>;
 }
 
