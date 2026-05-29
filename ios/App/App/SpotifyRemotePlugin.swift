@@ -159,13 +159,15 @@ extension SpotifyRemotePlugin: SPTAppRemoteDelegate {
 
     public func appRemote(_ appRemote: SPTAppRemote, didFailConnectionAttemptWithError error: Error?) {
         // Spotify n'est probablement pas lancé → on le réveille + autorise.
-        // authorizeAndPlayURI("") lance Spotify; le token revient via le
-        // redirect URI (handleOpenURL).
-        if appRemote.authorizeAndPlayURI("") == false {
-            // Spotify n'est pas installé.
-            notifyListeners("disconnected", data: ["error": "Spotify n'est pas installé"])
-            pendingConnectCall?.reject(error?.localizedDescription ?? "Spotify n'est pas installé")
-            pendingConnectCall = nil
+        // authorizeAndPlayURI lance Spotify; le token revient via le redirect
+        // URI (handleOpenURL). Le Bool indique seulement si Spotify est installé.
+        appRemote.authorizeAndPlayURI("") { [weak self] spotifyInstalled in
+            guard let self = self else { return }
+            if !spotifyInstalled {
+                self.notifyListeners("disconnected", data: ["error": "Spotify n'est pas installé"])
+                self.pendingConnectCall?.reject(error?.localizedDescription ?? "Spotify n'est pas installé")
+                self.pendingConnectCall = nil
+            }
         }
     }
 
