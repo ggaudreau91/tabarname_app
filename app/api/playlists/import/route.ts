@@ -93,6 +93,20 @@ export async function POST(req: Request) {
         { status: 404 },
       );
     }
+    // Depuis février 2026, Spotify ne renvoie le contenu d'une playlist QUE si
+    // l'utilisateur la possède (ou en est collaborateur). Sinon: 403 sur /items.
+    if (msg.includes("Spotify 403")) {
+      return NextResponse.json(
+        {
+          error: "playlist_not_owned",
+          detail:
+            "Spotify n'autorise plus l'import des playlists d'autres utilisateurs. " +
+            "Duplique-la dans ta bibliothèque (clic droit → Ajouter à une nouvelle playlist), " +
+            "puis importe ta copie.",
+        },
+        { status: 403 },
+      );
+    }
     return NextResponse.json(
       { error: "import_failed", detail: msg },
       { status: 500 },

@@ -17,6 +17,13 @@ type Playlist = {
   track_count?: number;
 };
 
+type SystemAccount = {
+  linked: boolean;
+  spotify_user_id: string | null;
+  product: string | null;
+  can_read_playlists: boolean;
+};
+
 function TopBar() {
   return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
@@ -58,6 +65,7 @@ export default function AdminPlaylistsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [system, setSystem] = useState<SystemAccount | null>(null);
 
   async function refresh() {
     const { data } = await supabase
@@ -83,6 +91,12 @@ export default function AdminPlaylistsPage() {
     queueMicrotask(() => {
       if (!cancelled) void refresh();
     });
+    fetch("/api/admin/system-account")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d) setSystem(d as SystemAccount);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -95,7 +109,8 @@ export default function AdminPlaylistsPage() {
     setMessage(null);
     setError(null);
     try {
-      const res = await fetch("/api/playlists/import", {
+      // Catalogue officiel → import via le compte système Tabarname.
+      const res = await fetch("/api/admin/playlists", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ input, slug: slug || undefined, name: name.trim() || undefined }),
@@ -131,8 +146,43 @@ export default function AdminPlaylistsPage() {
         <h1 className="font-display" style={{ fontWeight: 700, fontSize: 44, color: "var(--ink)", letterSpacing: "-0.01em", marginTop: 22 }}>{t("admin.title")}</h1>
         <p style={{ fontSize: 14.5, color: "var(--ink-2)", marginTop: 8 }}>{t("admin.subtitle")}</p>
 
+        {/* compte système Tabarname */}
+        <div
+          className="tb-card"
+          style={{
+            padding: "16px 18px",
+            marginTop: 22,
+            border: `1.5px solid ${system?.linked ? "rgba(29,185,84,0.4)" : "var(--line-strong)"}`,
+            background: system?.linked ? "rgba(29,185,84,0.06)" : "var(--surface-2)",
+          }}
+        >
+          <div className="tb-mono" style={{ fontSize: 10.5, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-dim)" }}>
+            Compte Spotify Tabarname
+          </div>
+          {system?.linked ? (
+            <p style={{ fontSize: 13.5, color: "var(--ink-2)", marginTop: 8, lineHeight: 1.5 }}>
+              ✓ Lié — <b style={{ color: "var(--ink)" }}>{system.spotify_user_id}</b>{" "}
+              ({system.product ?? "open"})
+              {!system.can_read_playlists && (
+                <span style={{ color: "var(--destructive)" }}> · scope playlist-read-private manquant, relie le compte</span>
+              )}
+              . Le catalogue officiel s&apos;importe avec ce compte — il doit{" "}
+              <b style={{ color: "var(--ink)" }}>posséder</b> les playlists (duplique-les
+              dans son compte au besoin).
+            </p>
+          ) : (
+            <p style={{ fontSize: 13.5, color: "var(--ink-2)", marginTop: 8, lineHeight: 1.5 }}>
+              ⚠ Non lié. Lance{" "}
+              <code className="tb-mono" style={{ background: "var(--surface)", padding: "1px 6px", borderRadius: 6 }}>
+                pnpm link-system-account
+              </code>{" "}
+              et connecte-toi avec le compte Tabarname officiel pour pouvoir importer le catalogue.
+            </p>
+          )}
+        </div>
+
         {/* import card */}
-        <form onSubmit={onImport} className="tb-card" style={{ padding: "22px 20px", marginTop: 22 }}>
+        <form onSubmit={onImport} className="tb-card" style={{ padding: "22px 20px", marginTop: 14 }}>
           <h2 className="font-display" style={{ fontWeight: 700, fontSize: 26, color: "var(--ink)", lineHeight: 1.1, marginBottom: 18 }}>{t("admin.import.title")}</h2>
 
           <label htmlFor="input" style={labelStyle}>{t("admin.import.idLabel")}</label>

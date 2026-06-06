@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "import-playlist": "NODE_OPTIONS=--dns-result-order=ipv4first dotenv -e .env.local -e .env -- tsx scripts/import_playlist.ts"
+    "import-playlist": "NODE_OPTIONS=--dns-result-order=ipv4first dotenv -e .env.local -e .env -- tsx scripts/import_playlist.ts",
+    "link-system-account": "NODE_OPTIONS=--dns-result-order=ipv4first dotenv -e .env.local -e .env -- tsx scripts/link_system_account.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",

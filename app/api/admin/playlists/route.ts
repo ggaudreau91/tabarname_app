@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { importPlaylist, parsePlaylistInput } from "@/lib/curation/import";
+import {
+  importPlaylist,
+  parsePlaylistInput,
+  slugifyName,
+} from "@/lib/curation/import";
+import { SYSTEM_PLAYER_ID } from "@/lib/curation/system";
 import { parseJson, requireUserId } from "@/lib/api";
 
 const Body = z.object({
   input: z.string().min(1),
-  slug: z.string().regex(/^[a-z0-9-]+$/),
+  // Optionnel — sinon dérivé du nom Spotify (comme l'import user).
+  slug: z
+    .string()
+    .regex(/^[a-z0-9-]+$/)
+    .optional(),
   name: z.string().optional(),
 });
 
@@ -17,7 +26,12 @@ function isAdmin(userId: string): boolean {
   return allowList.includes(userId);
 }
 
-// POST /api/admin/playlists — import via API Spotify
+// POST /api/admin/playlists — import du CATALOGUE OFFICIEL via le compte système
+// Tabarname. Le token utilisé est celui du compte système (SYSTEM_PLAYER_ID),
+// pas celui de l'admin: depuis le changement d'API Spotify de février 2026,
+// /items ne renvoie le contenu QUE pour les playlists possédées par le compte du
+// token. Le compte Tabarname doit donc POSSÉDER la playlist (la dupliquer
+// manuellement dans son compte au besoin).
 export async function POST(req: Request) {
   const userId = await requireUserId();
   if (userId instanceof NextResponse) return userId;
@@ -28,17 +42,53 @@ export async function POST(req: Request) {
   const body = await parseJson(req, Body);
   if (body instanceof NextResponse) return body;
 
+  const playlistId = parsePlaylistInput(body.input);
+  const slug =
+    body.slug ?? `${slugifyName(body.name?.trim() || playlistId)}-${playlistId.slice(0, 6).toLowerCase()}`;
+
   try {
     const result = await importPlaylist({
-      playlistId: parsePlaylistInput(body.input),
-      slug: body.slug,
+      playlistId,
+      slug,
       name: body.name,
-      actingPlayerId: userId,
+      actingPlayerId: SYSTEM_PLAYER_ID,
+      markActive: true,
     });
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Pas de token système → le compte Tabarname n'a pas encore été lié.
+    if (msg.includes("Pas de token Spotify lié")) {
+      return NextResponse.json(
+        {
+          error: "system_not_linked",
+          detail:
+            "Le compte Spotify Tabarname n'est pas lié. Lance `pnpm link-system-account` puis réessaie.",
+        },
+        { status: 409 },
+      );
+    }
+    if (msg.includes("Spotify 404")) {
+      return NextResponse.json(
+        { error: "playlist_not_found", detail: "Playlist introuvable ou privée." },
+        { status: 404 },
+      );
+    }
+    // 403 = le compte Tabarname ne possède pas cette playlist (règle fév. 2026).
+    if (msg.includes("Spotify 403")) {
+      return NextResponse.json(
+        {
+          error: "playlist_not_owned",
+          detail:
+            "Le compte Tabarname ne possède pas cette playlist. Duplique-la d'abord " +
+            "dans le compte Tabarname (Spotify → ⋯ → Ajouter à une nouvelle playlist), " +
+            "puis importe la copie.",
+        },
+        { status: 403 },
+      );
+    }
     return NextResponse.json(
-      { error: "import_failed", detail: e instanceof Error ? e.message : String(e) },
+      { error: "import_failed", detail: msg },
       { status: 500 },
     );
   }

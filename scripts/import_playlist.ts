@@ -17,6 +17,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { createDecipheriv } from "node:crypto";
 
+// DOIT rester identique à lib/curation/system.ts et la migration 0014.
+const SYSTEM_PLAYER_ID = "00000000-0000-4000-8000-000000000001";
+
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
   return i >= 0 ? process.argv[i + 1] : undefined;
@@ -42,20 +45,21 @@ type TokenRow = {
   access_token_expires_at: string;
 };
 
-// Refresh + récupération du dernier user-token Spotify lié.
-// Depuis nov 2024, l'API playlists exige un user-token (client_credentials = 403).
+// Refresh + récupération du token du COMPTE SYSTÈME Tabarname.
+// Depuis fév. 2026, /items ne renvoie le contenu QUE pour les playlists
+// possédées par le compte du token → on importe le catalogue officiel avec le
+// compte système (lié via `pnpm link-system-account`).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function getUserToken(supabase: any): Promise<string> {
   const { data, error } = await supabase
     .from("spotify_tokens")
     .select("*")
-    .order("updated_at", { ascending: false })
-    .limit(1)
+    .eq("player_id", SYSTEM_PLAYER_ID)
     .maybeSingle();
   if (error) throw new Error(`spotify_tokens lookup: ${error.message}`);
   if (!data) {
     throw new Error(
-      "Aucun token Spotify en DB. Va sur http://127.0.0.1:3000 et clique 'Connecter Spotify' d'abord.",
+      "Aucun token du compte système Tabarname. Lance `pnpm link-system-account` d'abord.",
     );
   }
   const row = data as unknown as TokenRow;
@@ -125,8 +129,6 @@ type PlaylistMeta = {
   name: string;
   description: string;
   images: { url: string }[];
-  tracks?: Paginated;
-  items?: Paginated;
 };
 
 function extractTrack(entry: PlaylistEntry): SpotifyTrack | null {
@@ -137,41 +139,29 @@ async function fetchPlaylistWithTracks(
   playlistId: string,
   token: string,
 ): Promise<{ meta: PlaylistMeta; tracks: SpotifyTrack[] }> {
+  // Métadonnées seulement — depuis février 2026, GET /playlists/{id} ne renvoie
+  // plus le champ `tracks` embarqué. Les pistes passent par /items (ci-dessous).
   const res = await spotifyGet(
     `https://api.spotify.com/v1/playlists/${playlistId}`,
     token,
   );
   const meta = (await res.json()) as PlaylistMeta;
 
-  const page = meta.tracks ?? meta.items;
-  if (!page || !Array.isArray(page.items)) {
-    throw new Error("Forme de réponse Spotify inattendue: pas de page de tracks.");
-  }
-
+  // /tracks a été supprimé (403 partout) et remplacé par /items. Spotify ne
+  // renvoie le contenu QUE pour les playlists que l'utilisateur possède.
   const tracks: SpotifyTrack[] = [];
-  for (const entry of page.items) {
-    const t = extractTrack(entry);
-    if (t) tracks.push(t);
-  }
-  const total = page.total ?? tracks.length;
-
-  let next = page.next;
+  let next: string | null = `https://api.spotify.com/v1/playlists/${playlistId}/items?limit=100`;
   while (next) {
-    try {
-      const pageRes = await spotifyGet(next, token);
-      const p = (await pageRes.json()) as Paginated;
-      for (const entry of p.items) {
-        const t = extractTrack(entry);
-        if (t) tracks.push(t);
-      }
-      next = p.next;
-    } catch (e) {
-      console.warn(
-        `\n⚠️  Pagination bloquée — on garde les ${tracks.length} premières pistes sur ${total}.`,
-      );
-      console.warn(`   (cause: ${e instanceof Error ? e.message : e})`);
-      break;
+    const pageRes = await spotifyGet(next, token);
+    const p = (await pageRes.json()) as Paginated;
+    if (!Array.isArray(p.items)) {
+      throw new Error("Forme de réponse Spotify inattendue: pas de page de tracks.");
     }
+    for (const entry of p.items) {
+      const t = extractTrack(entry);
+      if (t) tracks.push(t);
+    }
+    next = p.next;
   }
 
   return { meta, tracks };
@@ -194,12 +184,11 @@ async function main() {
 
   const token = await getUserToken(supabase);
 
-  // Affiche les scopes du token en DB pour diagnostiquer 403 sur playlists
+  // Affiche les scopes du token système en DB pour diagnostiquer 403 sur playlists
   const { data: tokenRow } = await supabase
     .from("spotify_tokens")
     .select("scope, spotify_user_id, updated_at")
-    .order("updated_at", { ascending: false })
-    .limit(1)
+    .eq("player_id", SYSTEM_PLAYER_ID)
     .maybeSingle();
   const tokenInfo = tokenRow as { scope?: string; spotify_user_id?: string; updated_at?: string } | null;
   console.log(`Token user: ${tokenInfo?.spotify_user_id ?? "?"}`);

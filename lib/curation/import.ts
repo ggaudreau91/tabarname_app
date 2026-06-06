@@ -20,8 +20,6 @@ type PlaylistMeta = {
   name: string;
   description: string;
   images: { url: string }[];
-  tracks?: Paginated;
-  items?: Paginated;
 };
 
 function extractTrack(entry: PlaylistEntry): SpotifyTrack | null {
@@ -67,40 +65,38 @@ export async function importPlaylist(params: {
   if (!tokenInfo) throw new Error("Pas de token Spotify lié pour ce joueur");
   const token = tokenInfo.accessToken;
 
+  // Métadonnées (nom, cover, description). Depuis le changement d'API de
+  // février 2026, GET /playlists/{id} ne renvoie PLUS le champ `tracks`
+  // embarqué — il faut paginer les pistes via /playlists/{id}/items.
   const metaRes = await spotifyGet(
     `https://api.spotify.com/v1/playlists/${params.playlistId}`,
     token,
   );
   const meta = (await metaRes.json()) as PlaylistMeta;
 
-  const firstPage = meta.tracks ?? meta.items;
-  if (!firstPage || !Array.isArray(firstPage.items)) {
-    throw new Error("Forme de réponse Spotify inattendue");
-  }
-
+  // Pistes via /items. Spotify ne renvoie le contenu QUE pour les playlists
+  // que l'utilisateur possède (ou dont il est collaborateur) — sinon 403.
+  // /tracks a été supprimé en février 2026 et renvoie 403 partout.
   const tracks: SpotifyTrack[] = [];
-  for (const entry of firstPage.items) {
-    const t = extractTrack(entry);
-    if (t) tracks.push(t);
-  }
-
-  let next = firstPage.next;
+  let next:
+    | string
+    | null = `https://api.spotify.com/v1/playlists/${params.playlistId}/items?limit=100`;
+  let total: number | undefined;
   while (next) {
-    try {
-      const pageRes = await spotifyGet(next, token);
-      const page = (await pageRes.json()) as Paginated;
-      for (const entry of page.items) {
-        const t = extractTrack(entry);
-        if (t) tracks.push(t);
-      }
-      next = page.next;
-    } catch {
-      // Pagination peut être bloquée — on garde ce qu'on a
-      break;
+    const pageRes = await spotifyGet(next, token);
+    const page = (await pageRes.json()) as Paginated;
+    if (!Array.isArray(page.items)) {
+      throw new Error("Forme de réponse Spotify inattendue");
     }
+    for (const entry of page.items) {
+      const t = extractTrack(entry);
+      if (t) tracks.push(t);
+    }
+    if (total === undefined) total = page.total;
+    next = page.next;
   }
 
-  const total = firstPage.total ?? tracks.length;
+  total = total ?? tracks.length;
   const svc = getSupabaseService();
 
   const { data: pl, error: plErr } = await svc

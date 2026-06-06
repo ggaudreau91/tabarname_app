@@ -21,8 +21,12 @@ type Playlist = {
   name: string;
   description: string | null;
   cover_url: string | null;
+  is_user_imported: boolean;
+  imported_by: string | null;
   track_count?: number;
 };
+
+const PLAYLIST_COLS = "id, slug, name, description, cover_url, is_user_imported, imported_by";
 
 const RANDOM_PSEUDO_PARTS = {
   adj: ["Ptit", "Gros", "Vieux", "Bibitte", "Toune", "Gros", "Ti-Cul", "Tabarn"],
@@ -229,7 +233,7 @@ export default function NewPartyPage() {
     (async () => {
       const { data } = await supabase
         .from("curated_playlists")
-        .select("id, slug, name, description, cover_url")
+        .select(PLAYLIST_COLS)
         .eq("is_active", true)
         .order("name");
       const lists = (data ?? []) as Playlist[];
@@ -249,6 +253,19 @@ export default function NewPartyPage() {
   }, [supabase]);
 
   const validLocalPseudos = localPlayers.map((p) => p.trim()).filter((p) => p.length > 0);
+
+  // Regroupement des sources: catalogue officiel Tabarname, les playlists du
+  // joueur, et celles importées par d'autres joueurs.
+  const playlistGroups = useMemo(() => {
+    const official = playlists.filter((p) => !p.is_user_imported);
+    const mine = playlists.filter((p) => p.is_user_imported && p.imported_by === selfId);
+    const community = playlists.filter((p) => p.is_user_imported && p.imported_by !== selfId);
+    return [
+      { key: "official", title: "Catalogue officiel Tabarname", items: official },
+      { key: "mine", title: "Mes playlists", items: mine },
+      { key: "community", title: "Importées par d'autres", items: community },
+    ].filter((g) => g.items.length > 0);
+  }, [playlists, selfId]);
 
   const canSubmit = (() => {
     if (!playlistId || submitting) return false;
@@ -285,7 +302,7 @@ export default function NewPartyPage() {
       }
       const { data: lists } = await supabase
         .from("curated_playlists")
-        .select("id, slug, name, description, cover_url")
+        .select(PLAYLIST_COLS)
         .eq("is_active", true)
         .order("name");
       const enriched = (lists ?? []) as Playlist[];
@@ -490,16 +507,28 @@ export default function NewPartyPage() {
               Aucune playlist active — importes-en une depuis Spotify ci-dessous.
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {playlists.map((p) => (
-                <RadioCard
-                  key={p.id}
-                  selected={p.id === playlistId}
-                  onClick={() => setPlaylistId(p.id)}
-                  icon={<PlaylistThumb />}
-                  title={p.name}
-                  body={`${p.track_count ?? "?"} pistes`}
-                />
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {playlistGroups.map((group) => (
+                <div key={group.key} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {playlistGroups.length > 1 && (
+                    <div
+                      className="tb-mono"
+                      style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--ink-dim)" }}
+                    >
+                      {group.title}
+                    </div>
+                  )}
+                  {group.items.map((p) => (
+                    <RadioCard
+                      key={p.id}
+                      selected={p.id === playlistId}
+                      onClick={() => setPlaylistId(p.id)}
+                      icon={<PlaylistThumb />}
+                      title={p.name}
+                      body={`${p.track_count ?? "?"} pistes`}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
           )}
