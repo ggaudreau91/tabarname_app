@@ -41,6 +41,36 @@ export default function ComptePage() {
   const [selfId, setSelfId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [idCopied, setIdCopied] = useState(false);
+  const [busy, setBusy] = useState<null | "disconnect" | "delete">(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [dangerError, setDangerError] = useState<string | null>(null);
+
+  async function disconnectSpotify() {
+    setBusy("disconnect");
+    setDangerError(null);
+    try {
+      const res = await fetch("/api/spotify/disconnect", { method: "POST" });
+      if (!res.ok) throw new Error("disconnect_failed");
+      window.location.reload();
+    } catch {
+      setDangerError("La déconnexion a échoué. Réessaie.");
+      setBusy(null);
+    }
+  }
+
+  async function deleteAccount() {
+    setBusy("delete");
+    setDangerError(null);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      if (!res.ok) throw new Error("delete_failed");
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } catch {
+      setDangerError("La suppression a échoué. Réessaie ou écris-nous.");
+      setBusy(null);
+    }
+  }
 
   useEffect(() => {
     (async () => {
@@ -185,7 +215,76 @@ export default function ComptePage() {
               <Link href="/parties/rejoindre" className="tb-btn tb-btn--ghost">Rejoindre</Link>
             </div>
 
-            <Link href="/" style={{ display: "inline-block", marginTop: 26, color: "var(--accent)", fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3 }}>
+            {/* zone de gestion du compte */}
+            <h2 className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--ink)", marginTop: 40 }}>Gestion du compte</h2>
+            <div className="tb-card" style={{ padding: "18px 18px", marginTop: 14, display: "flex", flexDirection: "column", gap: 14 }}>
+              {product !== null && (
+                <div>
+                  <button
+                    onClick={disconnectSpotify}
+                    disabled={busy !== null}
+                    className="tb-btn tb-btn--ghost"
+                    style={{ opacity: busy ? 0.6 : 1 }}
+                  >
+                    {busy === "disconnect" ? "Déconnexion…" : "Déconnecter Spotify"}
+                  </button>
+                  <p style={{ fontSize: 12.5, color: "var(--ink-dim)", marginTop: 8, lineHeight: 1.45 }}>
+                    Retire le lien Spotify et supprime tes jetons. Ton compte de jeu est conservé.
+                  </p>
+                </div>
+              )}
+
+              <div style={{ height: 1, background: "var(--line)" }} />
+
+              <div>
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={busy !== null}
+                    className="tb-btn tb-btn--ghost"
+                    style={{ color: "var(--destructive)", borderColor: "var(--destructive)" }}
+                  >
+                    Supprimer mon compte
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <p style={{ fontSize: 13.5, color: "var(--ink)", lineHeight: 1.5 }}>
+                      Cette action est <b>définitive</b> : ton compte, ton courriel et tes jetons Spotify seront effacés.
+                    </p>
+                    <div style={{ display: "flex", gap: 10 }}>
+                      <button
+                        onClick={deleteAccount}
+                        disabled={busy !== null}
+                        className="tb-btn"
+                        style={{ background: "var(--destructive)", color: "#fff", opacity: busy ? 0.6 : 1 }}
+                      >
+                        {busy === "delete" ? "Suppression…" : "Oui, supprimer définitivement"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={busy !== null}
+                        className="tb-btn tb-btn--ghost"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <p style={{ fontSize: 12.5, color: "var(--ink-dim)", marginTop: 8, lineHeight: 1.45 }}>
+                  Efface ton identité de connexion et tes données personnelles.
+                </p>
+              </div>
+
+              {dangerError && <p style={{ fontSize: 13, color: "var(--destructive)" }}>{dangerError}</p>}
+            </div>
+
+            {/* liens légaux */}
+            <div className="tb-mono" style={{ display: "flex", gap: 14, marginTop: 22, fontSize: 12, color: "var(--ink-dim)" }}>
+              <Link href="/legal/confidentialite" style={{ color: "var(--ink-dim)" }}>Confidentialité</Link>
+              <Link href="/legal/conditions" style={{ color: "var(--ink-dim)" }}>Conditions</Link>
+            </div>
+
+            <Link href="/" style={{ display: "inline-block", marginTop: 22, color: "var(--accent)", fontSize: 15, textDecoration: "underline", textUnderlineOffset: 3 }}>
               ← {t("game.backHome")}
             </Link>
           </>
