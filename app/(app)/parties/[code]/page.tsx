@@ -493,6 +493,22 @@ export default function RoomPage({
     };
   }, [turn, isLocalMode]);
 
+  // Mode local: ancre CLIENT du vrai début de tour. Le tour est créé côté
+  // serveur dès la résolution du précédent (écran de révélation), et la page
+  // peut aussi être (re)chargée longtemps après — phase_changed_at ne vaut
+  // donc rien pour le chrono. L'ancre est posée quand le joueur entre
+  // réellement dans son tour (overlay « Je suis prêt » fermé).
+  const [localTurnAnchor, setLocalTurnAnchor] = useState<string | null>(null);
+  useEffect(() => {
+    setLocalTurnAnchor(null);
+  }, [turn?.id]);
+  useEffect(() => {
+    if (!isLocalMode || localTurnAnchor) return;
+    if (!turn || turn.phase !== "turn_playing") return;
+    if (!passReady) return; // l'overlay est encore affiché
+    setLocalTurnAnchor(new Date().toISOString());
+  }, [isLocalMode, localTurnAnchor, turn, passReady]);
+
   // En local: la "timeline du joueur courant" est celle du joueur virtuel actif.
   // En online: c'est celle de l'auth user.
   const ownerForTimeline = isLocalMode
@@ -674,12 +690,18 @@ export default function RoomPage({
   // joueur n'a même pas vu son tour (écran « Passe l'appareil », ou écran de
   // reveal du tour précédent encore affiché).
   const waitingForPass = isLocalMode && !passReady;
-  const turnRemaining = useTurnTimer(
+  // En local, la référence du chrono est l'ancre client (posée au « Je suis
+  // prêt »), jamais phase_changed_at.
+  const timerAnchor =
     turn && (turn.phase === "turn_playing" || turn.phase === "guess_window")
-      ? turn.phase_changed_at
-      : null,
+      ? isLocalMode
+        ? localTurnAnchor
+        : turn.phase_changed_at
+      : null;
+  const turnRemaining = useTurnTimer(
+    timerAnchor,
     room?.turn_seconds ?? TURN_PLAYING_HINT_SECONDS,
-    paused || waitingForPass,
+    paused || waitingForPass || (isLocalMode && !localTurnAnchor),
   );
 
   // Timeout: à 0s sans placement, on clôt le tour comme raté (reveal → suivant).
@@ -689,6 +711,7 @@ export default function RoomPage({
     if (turn.phase !== "turn_playing" && turn.phase !== "guess_window") return;
     if (!(isActive || isLocalMode)) return;
     if (waitingForPass) return; // le joueur n'a pas encore pris l'appareil
+    if (isLocalMode && !localTurnAnchor) return; // le tour n'a pas vraiment commencé
     if (turnRemaining > 0) return;
     if (timeoutFiredRef.current === turn.id) return;
     timeoutFiredRef.current = turn.id;
@@ -935,6 +958,13 @@ export default function RoomPage({
         onReady={() => {
           setPassReady(true);
           unlockAudio();
+          // Le chrono serveur repart MAINTENANT: le tour a été créé à la
+          // résolution du précédent, pendant l'écran de révélation.
+          if (turn) {
+            callApi(`/api/parties/${upperCode}/ready`, { turn_id: turn.id }).catch((e) =>
+              console.warn("[ready] reset du chrono raté", e),
+            );
+          }
         }}
       />
     );
@@ -1157,7 +1187,9 @@ export default function RoomPage({
                 activePseudo={activePlayer.pseudo}
                 activePlayerId={activePlayer.player_id}
                 isYouActive={isActive}
-                phaseChangedAt={turn.phase_changed_at}
+                phaseChangedAt={
+                  isLocalMode ? localTurnAnchor ?? turn.phase_changed_at : turn.phase_changed_at
+                }
                 durationSeconds={
                   turn.phase === "challenge_window" && room.challenges_enabled
                     ? CHALLENGE_WINDOW_SECONDS
