@@ -463,3 +463,33 @@
   .tb-slot { height: 110px !important; }
   .tb-mystery-back { transform: scale(0.78); transform-origin: top center; margin-bottom: -46px; }
 }
+
+/* ---------- iPhone Duo ---------- */
+/* Fermé (portrait ~466 pt) : la bande système (horloge, Wi-Fi) occupe le coin
+   supérieur droit par-dessus la WebView. Les entêtes qui gardent des actions à
+   droite se protègent avec cette classe; les téléphones ordinaires (≤ 430 pt)
+   ne sont pas touchés. */
+@media (orientation: portrait) and (min-width: 440px) and (max-width: 530px) {
+  .duo-safe-right { padding-right: 118px !important; }
+}
+
+/* Déplié (≥ 560 pt utiles) : mises en page en colonnes. !important nécessaire
+   car plusieurs conteneurs portent leur display/direction en style inline. */
+@media (min-width: 560px) {
+  .duo-hero {
+    display: grid !important;
+    grid-template-columns: 1.05fr 0.95fr;
+    column-gap: 44px;
+    align-items: center;
+  }
+  .duo-3col { display: grid !important; grid-template-columns: repeat(3, 1fr); gap: 26px; }
+  .duo-3col > * { padding-bottom: 0 !important; }
+  .duo-row { flex-direction: row !important; }
+  .duo-row > a { flex: 1; }
+  /* Colonne titre fixe + contenu défilant à droite (création de partie). */
+  .duo-split { display: grid !important; grid-template-columns: minmax(250px, 36%) 1fr; }
+  .duo-split-aside {
+    position: sticky; top: 0; height: 100dvh; overflow: hidden;
+    display: flex !important; flex-direction: column; justify-content: center;
+  }
+}

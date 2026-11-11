@@ -61,8 +61,10 @@ export default function Home() {
     >
       <div className="safe-top" style={{ padding: "16px 22px 40px" }}>
         {/* top bar */}
+        {/* duo-safe-right: en Duo fermé, la bande système occupe le coin haut-droit
+            où vit « Compte » — on décale le contenu vers la gauche. */}
         <div
-          className="flex items-center justify-between"
+          className="flex items-center justify-between duo-safe-right"
           style={{ marginBottom: 26 }}
         >
           <Wordmark height={26} />
@@ -79,6 +81,9 @@ export default function Home() {
           </Link>
         </div>
 
+        {/* Duo déplié: hero en 2 colonnes — texte à gauche, actions à droite,
+            pour que « Créer » et le code soient visibles sans défiler. */}
+        <div className="duo-hero">
         {/* hero */}
         <div style={{ position: "relative" }}>
           <div
@@ -173,6 +178,7 @@ export default function Home() {
             </span>
           </div>
         </div>
+        </div>
       </div>
 
       {/* marquee */}
@@ -206,9 +212,12 @@ export default function Home() {
         >
           Trois <span style={{ fontStyle: "italic", color: "var(--accent)" }}>tours</span>, puis on joue.
         </h2>
-        {HOWTO.map((s, i) => (
-          <HowStep key={s.n} n={s.n} title={s.t} body={s.d} last={i === HOWTO.length - 1} />
-        ))}
+        {/* Duo déplié: les trois étapes côte à côte. */}
+        <div className="duo-3col">
+          {HOWTO.map((s, i) => (
+            <HowStep key={s.n} n={s.n} title={s.t} body={s.d} last={i === HOWTO.length - 1} />
+          ))}
+        </div>
       </div>
 
       {/* footer CTA */}
@@ -216,12 +225,15 @@ export default function Home() {
         className="safe-bottom"
         style={{ padding: "20px 22px 30px", display: "flex", flexDirection: "column", gap: 10 }}
       >
-        <Link href="/parties/nouvelle" className="tb-btn tb-btn--accent tb-btn--block">
-          Créer une partie
-        </Link>
-        <Link href="/parties/rejoindre" className="tb-btn tb-btn--ghost tb-btn--block">
-          Rejoindre avec un code
-        </Link>
+        {/* Duo déplié: les deux boutons côte à côte. */}
+        <div className="duo-row" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Link href="/parties/nouvelle" className="tb-btn tb-btn--accent tb-btn--block">
+            Créer une partie
+          </Link>
+          <Link href="/parties/rejoindre" className="tb-btn tb-btn--ghost tb-btn--block">
+            Rejoindre avec un code
+          </Link>
+        </div>
         <div
           className="tb-mono"
           style={{

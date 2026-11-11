@@ -14,7 +14,7 @@ export function GameTopBar({ code, turnNumber, leaderLabel, leaderCards, onSetti
   const formatted = code.replace(/^(.{3})(.{3})$/, "$1·$2");
   return (
     <div
-      className="safe-top tb"
+      className="safe-top tb duo-safe-right"
       style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "14px 20px", background: "var(--panel)", color: "var(--panel-ink)",

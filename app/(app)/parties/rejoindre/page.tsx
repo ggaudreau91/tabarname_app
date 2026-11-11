@@ -32,8 +32,8 @@ function timeAgo(date: Date): string {
 
 function TopBar() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
-      <Wordmark height={24} />
+    // « Retour » à gauche: le coin haut-droit appartient à la bande système du Duo fermé.
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "4px 0 0" }}>
       <Link
         href="/"
         className="tb-mono"
@@ -41,6 +41,7 @@ function TopBar() {
       >
         ← Retour
       </Link>
+      <Wordmark height={24} />
     </div>
   );
 }
@@ -231,6 +232,9 @@ export default function JoinPartyPage() {
       <div className="safe-top" style={{ padding: "16px 22px 36px" }}>
         <TopBar />
 
+        {/* Duo déplié: invitation à gauche, saisie complète à droite —
+            code, pseudo et bouton visibles d'un coup, sans défiler. */}
+        <div className="duo-hero">
         <div style={{ position: "relative", marginTop: 26 }}>
           <Kicker rule style={{ marginBottom: 12 }}>On t&apos;a invité?</Kicker>
           <h1 className="font-display italic" style={{ fontWeight: 700, fontSize: 52, lineHeight: 0.95, letterSpacing: "-0.02em", color: "var(--ink)" }}>
@@ -246,6 +250,7 @@ export default function JoinPartyPage() {
           </p>
         </div>
 
+        <div style={{ minWidth: 0 }}>
         {/* code boxes */}
         <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-dim)", margin: "28px 0 12px" }}>
           Code de la salle
@@ -318,6 +323,8 @@ export default function JoinPartyPage() {
         </div>
         <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-dim)", marginTop: 14 }}>
           ou appuie sur <span style={{ color: "var(--accent)" }}>↵ Entrée</span>
+        </div>
+        </div>
         </div>
       </div>
 

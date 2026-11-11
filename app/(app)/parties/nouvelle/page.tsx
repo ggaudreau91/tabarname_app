@@ -43,9 +43,10 @@ function randomPseudo(): string {
 
 // ---- chrome ----
 function TopBar() {
+  // « Retour » vit à GAUCHE, collé au logo: sur l'iPhone Duo fermé, la bande
+  // système (horloge) occupe le coin supérieur droit et recouvrirait le bouton.
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
-      <Wordmark height={24} />
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "4px 0 0" }}>
       <Link
         href="/"
         className="tb-mono"
@@ -57,6 +58,7 @@ function TopBar() {
       >
         ← Retour
       </Link>
+      <Wordmark height={24} />
     </div>
   );
 }
@@ -385,9 +387,12 @@ export default function NewPartyPage() {
   const localAvaColors = ["var(--ava-1-bg)", "var(--gold)", "var(--ava-3-bg)", "var(--ava-4-bg)", "#3A4E6E", "#2E5A4A", "#5A3E5C", "#2C6E6A"];
 
   return (
-    <main className="tb flex-1" style={{ minHeight: "100%", background: "var(--bg)", color: "var(--ink)", display: "flex", flexDirection: "column" }}>
+    // duo-split: en Duo déplié, l'entête (titre + stats) devient une colonne
+    // fixe à gauche et le formulaire occupe la droite — plus de plein écran
+    // d'entête avant de voir le formulaire.
+    <main className="tb flex-1 duo-split" style={{ minHeight: "100%", background: "var(--bg)", color: "var(--ink)", display: "flex", flexDirection: "column" }}>
       {/* hero */}
-      <div className="safe-top" style={{ background: "var(--hero-bg)", color: "var(--hero-ink)", padding: "16px 22px 26px", position: "relative", overflow: "hidden" }}>
+      <div className="safe-top duo-split-aside" style={{ background: "var(--hero-bg)", color: "var(--hero-ink)", padding: "16px 22px 26px", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: -80, top: -30, opacity: 0.4, pointerEvents: "none" }}>
           <VinylDisc size={230} spinning />
         </div>

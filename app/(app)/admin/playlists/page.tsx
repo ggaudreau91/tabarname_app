@@ -26,11 +26,12 @@ type SystemAccount = {
 
 function TopBar() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 0 0" }}>
-      <Wordmark height={24} />
+    // « Retour » à gauche: le coin haut-droit appartient à la bande système du Duo fermé.
+    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "4px 0 0" }}>
       <Link href="/" className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-2)", border: "1px solid var(--line-strong)", borderRadius: 999, padding: "7px 13px", whiteSpace: "nowrap" }}>
         ← Retour
       </Link>
+      <Wordmark height={24} />
     </div>
   );
 }
