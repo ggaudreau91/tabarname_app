@@ -208,10 +208,10 @@ export default function NewPartyPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  // « Audio chez l'hôte » par défaut: un seul compte Spotify (l'hôte) par partie.
+  // « Autour d'une table » par défaut: un seul appareil, zéro friction.
   // Le mode en ligne exige un Premium par joueur ET que chaque compte soit
   // approuvé dans le dashboard Spotify (limite de 5 usagers en mode dev).
-  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">("host_audio");
+  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">("local_pass");
   const [importInput, setImportInput] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -618,18 +618,18 @@ export default function NewPartyPage() {
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <RadioCard
-              selected={mode === "host_audio"}
-              onClick={() => setMode("host_audio")}
-              icon={<GlyphIcon kind="headphones" />}
-              title="Audio chez l'hôte"
-              body="Chacun son appareil, le son chez l'hôte. Tes invités n'ont pas besoin de Spotify."
-            />
-            <RadioCard
               selected={mode === "local_pass"}
               onClick={() => setMode("local_pass")}
               icon={<GlyphIcon kind="table" />}
               title="Autour d'une table"
               body="Un seul appareil qu'on se passe. Idéal pour les apéros, party de cuisine."
+            />
+            <RadioCard
+              selected={mode === "host_audio"}
+              onClick={() => setMode("host_audio")}
+              icon={<GlyphIcon kind="headphones" />}
+              title="Audio chez l'hôte"
+              body="Chacun son appareil, le son chez l'hôte. Tes invités n'ont pas besoin de Spotify."
             />
             <RadioCard
               selected={mode === "online_premium"}
