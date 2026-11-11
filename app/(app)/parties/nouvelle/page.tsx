@@ -409,7 +409,7 @@ export default function NewPartyPage() {
           <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--panel-dim)", marginTop: 14, maxWidth: 320 }}>
             Choisis la playlist, règle la partie, partage le code à ta gang. Ça prend moins de 30 secondes.
           </p>
-          <div style={{ display: "flex", gap: 8, marginTop: 22, borderTop: "1px solid var(--panel-line)", paddingTop: 20 }}>
+          <div className="duo-stats" style={{ display: "flex", gap: 8, marginTop: 22, borderTop: "1px solid var(--panel-line)", paddingTop: 20 }}>
             {([["2-8", "Joueurs"], ["~30", "Min. moyenne"], [String(winCards), "Cartes pour gagner"]] as const).map(([v, l], i) => (
               <div key={i} style={{ flex: 1 }}>
                 <div className="font-display" style={{ fontWeight: 700, fontSize: 28, color: "var(--accent)", lineHeight: 1 }}>{v}</div>

@@ -487,7 +487,9 @@
   .duo-row { flex-direction: row !important; }
   .duo-row > a { flex: 1; }
   /* Colonne titre fixe + contenu défilant à droite (création de partie). */
-  .duo-split { display: grid !important; grid-template-columns: minmax(250px, 36%) 1fr; }
+  .duo-split { display: grid !important; grid-template-columns: minmax(205px, 31%) 1fr; }
+  /* Dans la colonne étroite, les 3 statistiques s'empilent. */
+  .duo-split-aside .duo-stats { flex-direction: column !important; gap: 14px !important; }
   /* Sans min-width:0, le contenu du formulaire force la piste 1fr à déborder
      de l'écran (boutons coupés au bord droit). */
   .duo-split > *, .duo-hero > * { min-width: 0; }
