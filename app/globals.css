@@ -506,3 +506,13 @@
   .duo-split-aside > div:first-child { display: none; }
   .duo-split-aside h1 { font-size: 34px !important; }
 }
+
+/* Coquille de page: pleine largeur sur tout appareil (le vrai iPhone Duo
+   déplié offre ~990 pt en paysage — tout plafond y fait des bandes noires).
+   La colonne centrée « téléphone » ne vaut que pour un navigateur de bureau. */
+@media (min-width: 1024px) {
+  .tb-shell {
+    max-width: 700px;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+  }
+}
