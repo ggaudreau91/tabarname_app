@@ -670,12 +670,16 @@ export default function RoomPage({
   }, [turn?.id]);
 
   // Compte à rebours autoritaire de la phase de jeu (pausable). Sert au timeout.
+  // En mode local, le chrono ne part qu'au « Je suis prêt » : avant ça, le
+  // joueur n'a même pas vu son tour (écran « Passe l'appareil », ou écran de
+  // reveal du tour précédent encore affiché).
+  const waitingForPass = isLocalMode && !passReady;
   const turnRemaining = useTurnTimer(
     turn && (turn.phase === "turn_playing" || turn.phase === "guess_window")
       ? turn.phase_changed_at
       : null,
     room?.turn_seconds ?? TURN_PLAYING_HINT_SECONDS,
-    paused,
+    paused || waitingForPass,
   );
 
   // Timeout: à 0s sans placement, on clôt le tour comme raté (reveal → suivant).
@@ -684,6 +688,7 @@ export default function RoomPage({
     if (!turn) return;
     if (turn.phase !== "turn_playing" && turn.phase !== "guess_window") return;
     if (!(isActive || isLocalMode)) return;
+    if (waitingForPass) return; // le joueur n'a pas encore pris l'appareil
     if (turnRemaining > 0) return;
     if (timeoutFiredRef.current === turn.id) return;
     timeoutFiredRef.current = turn.id;
@@ -1158,7 +1163,18 @@ export default function RoomPage({
                     ? CHALLENGE_WINDOW_SECONDS
                     : room.turn_seconds
                 }
-                paused={paused}
+                // Le chrono affiché ne tourne que dans les phases réellement
+                // chronométrées — pas pendant la résolution/révélation, ni
+                // avant « Je suis prêt » en mode local.
+                paused={
+                  paused ||
+                  waitingForPass ||
+                  !(
+                    turn.phase === "turn_playing" ||
+                    turn.phase === "guess_window" ||
+                    (turn.phase === "challenge_window" && room.challenges_enabled)
+                  )
+                }
                 onTogglePause={
                   shouldPlayAudio && turn.phase === "turn_playing"
                     ? togglePause
@@ -1190,18 +1206,39 @@ export default function RoomPage({
           selectedSlot={selectedSlot}
         />
 
+        {/* Dès qu'un emplacement est choisi, le bouton de confirmation colle
+            au bas de l'écran — plus besoin de défiler pour valider. */}
         {isActive && turn?.phase === "turn_playing" && (
-          <button
-            onClick={submitGuess}
-            disabled={selectedSlot === null || submittingAction === "guess"}
-            className="tb-btn tb-btn--accent tb-btn--block"
+          <div
+            className="safe-bottom"
+            style={
+              selectedSlot !== null
+                ? { position: "sticky", bottom: 0, zIndex: 30, padding: "10px 0 12px",
+                    background: "linear-gradient(to top, var(--bg) 72%, transparent)" }
+                : undefined
+            }
           >
-            {selectedSlot !== null ? "Confirmer le placement" : "Choisis un emplacement"}
-          </button>
+            <button
+              onClick={submitGuess}
+              disabled={selectedSlot === null || submittingAction === "guess"}
+              className="tb-btn tb-btn--accent tb-btn--block"
+              style={selectedSlot !== null ? { boxShadow: "0 10px 34px rgba(0,0,0,0.55)" } : undefined}
+            >
+              {selectedSlot !== null ? "Confirmer le placement" : "Choisis un emplacement"}
+            </button>
+          </div>
         )}
 
         {challengeMode && turn?.phase === "challenge_window" && (
-          <div className="flex items-center gap-3">
+          <div
+            className="safe-bottom flex items-center gap-3"
+            style={
+              selectedSlot !== null
+                ? { position: "sticky", bottom: 0, zIndex: 30, padding: "10px 0 12px",
+                    background: "linear-gradient(to top, var(--bg) 72%, transparent)" }
+                : undefined
+            }
+          >
             <button
               onClick={() => {
                 setChallengeMode(false);

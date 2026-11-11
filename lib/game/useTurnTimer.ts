@@ -18,13 +18,21 @@ export function useTurnTimer(
   const startRef = useRef(0);
   const pausedAccumMsRef = useRef(0);
   const pausedAtRef = useRef<number | null>(null);
+  // Miroir de `paused` lisible dans le reset sans le mettre en dépendance
+  // (sinon chaque bascule de pause réinitialiserait le compte à rebours).
+  const pausedNowRef = useRef(paused);
+  pausedNowRef.current = paused;
   const [remaining, setRemaining] = useState(durationSeconds);
 
   // Reset sur nouveau tour / nouvelle phase / durée modifiée.
   useEffect(() => {
     startRef.current = phaseChangedAt ? new Date(phaseChangedAt).getTime() : Date.now();
     pausedAccumMsRef.current = 0;
-    pausedAtRef.current = null;
+    // Si le tour démarre DÉJÀ en pause (mode local: on attend « Je suis
+    // prêt »), le temps doit s'accumuler comme pause dès maintenant — sans
+    // ça, le chrono courait pendant l'écran « Passe l'appareil » et le
+    // joueur pouvait perdre son tour avant même de l'avoir vu.
+    pausedAtRef.current = pausedNowRef.current ? Date.now() : null;
     setRemaining(durationSeconds);
   }, [phaseChangedAt, durationSeconds]);
 
