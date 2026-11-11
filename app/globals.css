@@ -516,3 +516,33 @@
     box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
   }
 }
+
+/* ---------- Retour d'interaction (tous les boutons) ----------
+   Un tap doit se SENTIR: pression nette (scale + assombrissement), survol
+   visible à la souris, anneau clavier, et interdit de cliquer un désactivé.
+   Sans ça, sur téléphone, « on pense que rien ne se passe ». */
+.tb :is(button, a) { -webkit-tap-highlight-color: transparent; }
+.tb button { touch-action: manipulation; }
+
+.tb-btn { transition: transform 0.12s ease, filter 0.15s ease, background 0.15s ease; }
+.tb-btn:not([disabled]):active { transform: translateY(1px) scale(0.96); filter: brightness(0.88); }
+.tb-btn--ghost:not([disabled]):active { background: rgba(225, 234, 245, 0.08); }
+
+/* Boutons sans .tb-btn: cartes radio, emplacements de timeline, pastilles,
+   steppers, pause, copier… */
+.tb button:not([class*="tb-btn"]) { transition: transform 0.1s ease, filter 0.12s ease; }
+.tb button:not([class*="tb-btn"]):not([disabled]):active { transform: scale(0.965); filter: brightness(1.15); }
+
+.tb button[disabled] { cursor: not-allowed; }
+
+@media (hover: hover) {
+  .tb-btn--ghost:not([disabled]):hover { background: rgba(225, 234, 245, 0.06); border-color: var(--ink-dim); }
+  .tb-btn--spotify:not([disabled]):hover { filter: brightness(1.07); }
+  .tb button:not([class*="tb-btn"]):not([disabled]):hover { filter: brightness(1.12); }
+}
+
+.tb :is(button, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tb-btn, .tb button:not([class*="tb-btn"]) { transition: none; }
+}
