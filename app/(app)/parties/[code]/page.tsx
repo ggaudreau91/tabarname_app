@@ -117,6 +117,12 @@ export default function RoomPage({
   // (overlay « la carte se retourne »). Seulement quand les contestations
   // sont désactivées — sinon la fenêtre de contestation doit se jouer.
   const [resolvingReveal, setResolvingReveal] = useState(false);
+  // Mode local: ancre du VRAI début de tour, posée au « Je suis prêt » et
+  // marquée de l'id du tour — toute valeur d'un autre tour est inerte, ce qui
+  // ferme les courses « l'ancien prêt est encore vrai pendant un rendu »
+  // (la musique partait en pesant vite sur « Prochain tour »). Chrono,
+  // expiration ET lecture audio s'y réfèrent.
+  const [localTurnAnchor, setLocalTurnAnchor] = useState<{ turnId: string; at: string } | null>(null);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [playbackStalled, setPlaybackStalled] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -395,17 +401,11 @@ export default function RoomPage({
     // avant de lancer la lecture — les browsers bloquent l'autoplay sans
     // gesture utilisateur, et le clic sur le bouton compte comme tel.
     if (room?.mode === "local_pass") {
-      // Race-condition guard: au changement de joueur actif, le state
-      // `passReady` est reset via queueMicrotask donc en retard d'un render.
-      // On vérifie le ref `lastSeenActiveRef` qui est synchrone — si on n'a
-      // pas encore "vu" ce joueur, l'overlay PassDevice va apparaître et la
-      // lecture doit attendre.
-      if (lastSeenActiveRef.current !== turn.active_player_id) {
-        console.log("[playback] skip: active player just changed");
-        return;
-      }
-      if (!passReady) {
-        console.log("[playback] skip: waiting for user 'ready' gesture");
+      // La lecture n'est permise que si « Je suis prêt » a été touché pour CE
+      // tour précis (ancre marquée de l'id du tour). Ferme toutes les courses
+      // où l'ancien passReady est encore vrai pendant un rendu.
+      if (localTurnAnchor?.turnId !== turn.id) {
+        console.log("[playback] skip: waiting for user 'ready' gesture (anchor)");
         return;
       }
     }
@@ -437,6 +437,7 @@ export default function RoomPage({
     ensurePlaying,
     ownedPlayerIds,
     passReady,
+    localTurnAnchor,
     audioUnlocked,
     shouldPlayAudio,
     playerMode,
@@ -503,23 +504,18 @@ export default function RoomPage({
   // peut aussi être (re)chargée longtemps après — phase_changed_at ne vaut
   // donc rien pour le chrono. L'ancre est posée quand le joueur entre
   // réellement dans son tour (overlay « Je suis prêt » fermé).
-  const [localTurnAnchor, setLocalTurnAnchor] = useState<string | null>(null);
+
+  // Pose l'ancre quand le joueur entre réellement dans son tour (« Je suis
+  // prêt » touché, overlay fermé).
   useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) setLocalTurnAnchor(null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [turn?.id]);
-  useEffect(() => {
-    if (!isLocalMode || localTurnAnchor) return;
+    if (!isLocalMode) return;
     if (!turn || turn.phase !== "turn_playing") return;
     if (!passReady) return; // l'overlay est encore affiché
+    if (localTurnAnchor?.turnId === turn.id) return;
+    const turnId = turn.id;
     let cancelled = false;
     queueMicrotask(() => {
-      if (!cancelled) setLocalTurnAnchor(new Date().toISOString());
+      if (!cancelled) setLocalTurnAnchor({ turnId, at: new Date().toISOString() });
     });
     return () => {
       cancelled = true;
@@ -649,6 +645,7 @@ export default function RoomPage({
   }
 
   async function nextTurn() {
+    if (submittingAction) return; // anti double-tap: un seul « Prochain tour »
     setSubmittingAction("next");
     setError(null);
     try {
@@ -733,18 +730,20 @@ export default function RoomPage({
   // joueur n'a même pas vu son tour (écran « Passe l'appareil », ou écran de
   // reveal du tour précédent encore affiché).
   const waitingForPass = isLocalMode && !passReady;
-  // En local, la référence du chrono est l'ancre client (posée au « Je suis
-  // prêt »), jamais phase_changed_at.
+  // L'ancre du tour COURANT (null si « Je suis prêt » n'a pas été touché pour
+  // ce tour). En local, le chrono s'y réfère — jamais à phase_changed_at.
+  const currentTurnAnchor =
+    turn && localTurnAnchor?.turnId === turn.id ? localTurnAnchor.at : null;
   const timerAnchor =
     turn && (turn.phase === "turn_playing" || turn.phase === "guess_window")
       ? isLocalMode
-        ? localTurnAnchor
+        ? currentTurnAnchor
         : turn.phase_changed_at
       : null;
   const turnRemaining = useTurnTimer(
     timerAnchor,
     room?.turn_seconds ?? TURN_PLAYING_HINT_SECONDS,
-    paused || waitingForPass || (isLocalMode && !localTurnAnchor),
+    paused || waitingForPass || (isLocalMode && !currentTurnAnchor),
   );
 
   // Timeout: à 0s sans placement, on clôt le tour comme raté (reveal → suivant).
@@ -754,7 +753,7 @@ export default function RoomPage({
     if (turn.phase !== "turn_playing" && turn.phase !== "guess_window") return;
     if (!(isActive || isLocalMode)) return;
     if (waitingForPass) return; // le joueur n'a pas encore pris l'appareil
-    if (isLocalMode && !localTurnAnchor) return; // le tour n'a pas vraiment commencé
+    if (isLocalMode && !currentTurnAnchor) return; // le tour n'a pas vraiment commencé
     if (turnRemaining > 0) return;
     if (timeoutFiredRef.current === turn.id) return;
     timeoutFiredRef.current = turn.id;
@@ -1231,7 +1230,7 @@ export default function RoomPage({
                 activePlayerId={activePlayer.player_id}
                 isYouActive={isActive}
                 phaseChangedAt={
-                  isLocalMode ? localTurnAnchor ?? turn.phase_changed_at : turn.phase_changed_at
+                  isLocalMode ? currentTurnAnchor ?? turn.phase_changed_at : turn.phase_changed_at
                 }
                 durationSeconds={
                   turn.phase === "challenge_window" && room.challenges_enabled
