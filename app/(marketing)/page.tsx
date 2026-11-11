@@ -169,7 +169,7 @@ export default function Home() {
               style={{ width: 9, height: 9, borderRadius: "50%", background: "var(--spotify)", flexShrink: 0 }}
             />
             <span style={{ fontSize: 12.5, color: "var(--ink-dim)" }}>
-              Propulsé par Spotify · Compte Premium requis
+              Propulsé par Spotify · Un seul Premium par partie
             </span>
           </div>
         </div>

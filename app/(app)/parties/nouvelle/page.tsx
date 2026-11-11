@@ -206,7 +206,10 @@ export default function NewPartyPage() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [playlistId, setPlaylistId] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">("online_premium");
+  // « Audio chez l'hôte » par défaut: un seul compte Spotify (l'hôte) par partie.
+  // Le mode en ligne exige un Premium par joueur ET que chaque compte soit
+  // approuvé dans le dashboard Spotify (limite de 5 usagers en mode dev).
+  const [mode, setMode] = useState<"online_premium" | "host_audio" | "local_pass">("host_audio");
   const [importInput, setImportInput] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -600,7 +603,7 @@ export default function NewPartyPage() {
 
           {/* 03 mode */}
           <SectionLabel n="03">Mode de jeu</SectionLabel>
-          {isMobile && mode === "online_premium" && (
+          {isMobile && (
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 14, background: "rgba(210,162,76,0.12)", border: "1px solid var(--line)", marginBottom: 12 }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", marginTop: 6, flexShrink: 0 }} />
               <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--ink-2)" }}>
@@ -610,18 +613,11 @@ export default function NewPartyPage() {
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <RadioCard
-              selected={mode === "online_premium"}
-              onClick={() => setMode("online_premium")}
-              icon={<GlyphIcon kind="globe" />}
-              title="En ligne"
-              body="Chacun joue sur son appareil. Chaque joueur a besoin de Premium."
-            />
-            <RadioCard
               selected={mode === "host_audio"}
               onClick={() => setMode("host_audio")}
               icon={<GlyphIcon kind="headphones" />}
               title="Audio chez l'hôte"
-              body="Plusieurs appareils, audio sur celui de l'hôte. Un Premium suffit."
+              body="Chacun son appareil, le son chez l'hôte. Tes invités n'ont pas besoin de Spotify."
             />
             <RadioCard
               selected={mode === "local_pass"}
@@ -629,6 +625,13 @@ export default function NewPartyPage() {
               icon={<GlyphIcon kind="table" />}
               title="Autour d'une table"
               body="Un seul appareil qu'on se passe. Idéal pour les apéros, party de cuisine."
+            />
+            <RadioCard
+              selected={mode === "online_premium"}
+              onClick={() => setMode("online_premium")}
+              icon={<GlyphIcon kind="globe" />}
+              title="En ligne"
+              body="Chacun chez soi, le son sur chaque appareil. Chaque joueur doit être Premium et approuvé d'avance (limite Spotify)."
             />
           </div>
 

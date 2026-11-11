@@ -385,7 +385,7 @@ export default function JoinPartyPage() {
         </div>
 
         <div className="tb-mono" style={{ textAlign: "center", fontSize: 10.5, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-dim)", marginTop: 22, lineHeight: 1.5 }}>
-          En mode en ligne · Compte Spotify Premium requis
+          Audio chez l&apos;hôte · aucun compte Spotify requis pour rejoindre
         </div>
       </div>
     </main>

@@ -6,11 +6,11 @@ export const fr = {
   "landing.cta.create": "Créer une partie",
   "landing.cta.join": "Rejoindre une partie",
   "landing.cta.joinShort": "Rejoindre",
-  "landing.spotifyLine": "Compte Premium requis",
+  "landing.spotifyLine": "Un seul Premium par partie",
   "landing.codePlaceholder": "EMB-543",
   "landing.codeLabel": "CODE",
   "landing.premiumNote":
-    "Compte Spotify Premium requis pour le mode en ligne. Mode « audio chez l'hôte » disponible pour jouer en personne avec un seul Premium.",
+    "Seul l'hôte a besoin de Spotify Premium — tes invités rejoignent sans compte. Le mode en ligne (un Premium par joueur) est réservé aux comptes approuvés d'avance.",
   "landing.howCta": "Aucun téléchargement. Joue dans ton fureteur, sur le bord du divan ou debout au party.",
   "landing.finalCta": "Côté A · Face party",
   "landing.howto.title": "Comment jouer",
@@ -26,7 +26,7 @@ export const fr = {
   "landing.modes.title": "Deux façons de jouer",
   "landing.modes.online.title": "En ligne",
   "landing.modes.online.body":
-    "Chacun chez soi, audio en streaming. Chaque joueur a besoin de Spotify Premium.",
+    "Chacun chez soi, audio en streaming. Chaque joueur doit être Premium et approuvé d'avance (limite Spotify).",
   "landing.modes.host.title": "Audio chez l'hôte",
   "landing.modes.host.body":
     "Pour jouer en personne autour d'un haut-parleur. Un seul Premium nécessaire, tout le monde voit le jeu sur son tél.",
@@ -46,7 +46,7 @@ export const fr = {
   "create.noPlaylists": "Aucune playlist active pour l'instant.",
   "create.mode": "Mode",
   "create.modeOnline": "En ligne (chacun joue chez soi)",
-  "create.modeOnlineHint": "Chaque joueur a besoin de Spotify Premium.",
+  "create.modeOnlineHint": "Chaque joueur doit être Premium et approuvé d'avance (limite Spotify).",
   "create.modeHost": "Audio chez l'hôte",
   "create.modeHostHint": "Pour jouer en personne. Seul l'hôte a besoin de Premium.",
   "create.winCondition": "Cartes pour gagner",
