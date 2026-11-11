@@ -121,15 +121,13 @@ export async function connectSpotify(returnTo?: string): Promise<void> {
     const { nonce } = (await res.json()) as { nonce: string };
     await SpotifyRemote.authorize({ nonce, swapBaseUrl: window.location.origin });
   } catch (e) {
-    const code = (e as { code?: string })?.code;
     const msg = e instanceof Error ? e.message : String(e);
-    // Spotify pas installé → on retombe sur le login web (autorisé dans la
-    // WebView par allowNavigation, cf. capacitor.config.ts).
-    if (code === "spotify_not_installed" || /spotify_not_installed|not installed/i.test(msg)) {
-      window.location.href = webLogin;
-      return;
-    }
-    throw e;
+    // Quelle que soit la raison (Spotify pas installé, nonce en échec, SDK
+    // capricieux), on retombe sur le login web plutôt que de laisser un clic
+    // mort — le flux web PKCE n'a besoin de rien de tout ça et reste dans la
+    // WebView (allowNavigation, cf. capacitor.config.ts).
+    console.warn("[spotify] auth native échouée, repli web:", msg);
+    window.location.href = webLogin;
   }
 }
 

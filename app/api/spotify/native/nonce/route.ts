@@ -24,6 +24,17 @@ export async function GET() {
   const expiresAt = new Date(Date.now() + NONCE_TTL_MS);
 
   const svc = getSupabaseService();
+
+  // Un utilisateur anonyme frais n'a pas encore de ligne `players`, et
+  // spotify_auth_nonces.player_id la référence (FK) → on la crée d'abord,
+  // comme le fait le flux web dans /api/spotify/login.
+  const { error: playerError } = await svc
+    .from("players")
+    .upsert({ id: user.id }, { onConflict: "id" });
+  if (playerError) {
+    return NextResponse.json({ error: playerError.message }, { status: 500 });
+  }
+
   const { error } = await svc.from("spotify_auth_nonces").insert({
     nonce,
     player_id: user.id,
