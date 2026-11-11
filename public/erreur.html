@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  Écran hors-ligne de la coquille iOS (Capacitor `server.errorPath`).
+
+  Quand la WebView n'arrive pas à charger le site distant (pas de réseau,
+  serveur injoignable), Capacitor redirige vers CETTE page, servie depuis le
+  bundle de l'app (capacitor://localhost/erreur.html). Elle doit donc être
+  100 % autonome : aucun fetch de police, d'image ou de CSS.
+
+  « Réessayer » renavigue vers l'URL de prod (APP_URL ci-dessous — doit rester
+  identique au CAP_SERVER_URL utilisé pour `npx cap sync ios`). La page
+  réessaie aussi toute seule quand iOS signale le retour du réseau, et sonde
+  le serveur toutes les 8 secondes.
+
+  Le fichier vit dans public/ (webDir Capacitor) : il est aussi servi par le
+  site à /erreur.html, sans conséquence.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tabarname — Pas de connexion</title>
+<style>
+  :root {
+    --bg: #0E1622;
+    --panel: #0A1220;
+    --ink: #F1EFE6;
+    --ink-dim: #7B8EA3;
+    --gold: #D2A24C;
+    --wine: #7E1E2B;
+    --line: rgba(225, 234, 245, 0.12);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Helvetica Neue", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: calc(env(safe-area-inset-top, 0px) + 24px) 28px
+             calc(env(safe-area-inset-bottom, 0px) + 24px);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .carte { max-width: 420px; width: 100%; }
+  /* Vinyle en CSS pur (pas d'image → marche hors-ligne) */
+  .vinyle {
+    width: 120px; height: 120px; margin: 0 auto 26px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 50%, #0A1220 0 18%, transparent 18%),
+      repeating-radial-gradient(circle at 50% 50%, #131E2E 0 2px, #0A1220 2px 5px);
+    position: relative;
+    animation: tourne 5s linear infinite paused;
+    border: 1px solid var(--line);
+  }
+  .vinyle::after {
+    content: "";
+    position: absolute; inset: 34%;
+    border-radius: 50%;
+    background: var(--gold);
+  }
+  .vinyle::before {
+    content: "";
+    position: absolute; left: 50%; top: 50%;
+    width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--panel);
+    z-index: 1;
+  }
+  .reessaie .vinyle { animation-play-state: running; }
+  @keyframes tourne { to { transform: rotate(360deg); } }
+  .mono {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--gold); margin-bottom: 12px;
+  }
+  h1 {
+    font-family: Georgia, "Times New Roman", serif;
+    font-style: italic; font-weight: 700;
+    font-size: 34px; line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  p { font-size: 15px; line-height: 1.55; color: var(--ink-dim); margin-bottom: 26px; }
+  button {
+    appearance: none; border: none; cursor: pointer;
+    background: var(--gold); color: #1d1405;
+    font: 600 16px/1 -apple-system, "Helvetica Neue", sans-serif;
+    padding: 15px 34px; border-radius: 999px;
+    width: 100%; max-width: 300px;
+  }
+  button:active { filter: brightness(0.9); }
+  .etat {
+    margin-top: 16px; font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--ink-dim); min-height: 14px;
+  }
+</style>
+</head>
+<body>
+  <main class="carte">
+    <div class="vinyle" aria-hidden="true"></div>
+    <div class="mono">Vinyl club · Mtl</div>
+    <h1>Pas de connexion.</h1>
+    <p>Tabarname a besoin d'Internet pour jouer. Vérifie ton réseau — la partie reprend dès que ça répond.</p>
+    <button type="button" id="retry">Réessayer</button>
+    <div class="etat" id="etat"></div>
+  </main>
+<script>
+  // Doit rester identique au CAP_SERVER_URL passé à `npx cap sync ios`.
+  var APP_URL = "https://tabarname-app.vercel.app";
+
+  var etat = document.getElementById("etat");
+  var essaiEnCours = false;
+
+  function retourApp() {
+    if (essaiEnCours) return;
+    essaiEnCours = true;
+    document.body.classList.add("reessaie");
+    etat.textContent = "Reconnexion…";
+    // Si ça échoue encore, Capacitor ramène cette page (errorPath).
+    window.location.href = APP_URL;
+  }
+
+  document.getElementById("retry").addEventListener("click", retourApp);
+  window.addEventListener("online", retourApp);
+
+  // Sonde discrète: dès que le serveur répond, on y retourne tout seul.
+  setInterval(function () {
+    if (essaiEnCours || navigator.onLine === false) return;
+    fetch(APP_URL, { method: "HEAD", mode: "no-cors", cache: "no-store" })
+      .then(retourApp)
+      .catch(function () {});
+  }, 8000);
+</script>
+</body>
+</html>

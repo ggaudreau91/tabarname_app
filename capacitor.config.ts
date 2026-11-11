@@ -19,6 +19,9 @@ const config: CapacitorConfig = {
   server: {
     url: serverUrl,
     cleartext: false,
+    // Page locale (bundle) affichée quand le site distant ne charge pas —
+    // sinon la WebView reste blanche sans réseau. Cf. public/erreur.html.
+    errorPath: "erreur.html",
     // Garde le flux OAuth Spotify À L'INTÉRIEUR de la WebView. Sans ça,
     // Capacitor ouvre accounts.spotify.com dans Safari externe et le callback
     // n'y revient jamais → impossible de lier le compte dans l'app native.
