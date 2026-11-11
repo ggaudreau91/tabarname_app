@@ -456,3 +456,10 @@
   .tb-marquee-track, .tb-spin-slow, .tb-pulse-dot { animation: none; }
   .tb-slot[data-active="true"] { animation: none; }
 }
+
+/* iPhone Duo déplié en paysage (écran large et court) : on resserre la
+   verticale du jeu pour que la timeline reste visible sous la carte mystère. */
+@media (max-height: 560px) {
+  .tb-slot { height: 110px !important; }
+  .tb-mystery-back { transform: scale(0.78); transform-origin: top center; margin-bottom: -46px; }
+}

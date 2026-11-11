@@ -1140,9 +1140,11 @@ export default function RoomPage({
         </div>
       )}
 
-      <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 max-w-7xl mx-auto w-full flex flex-col gap-6 sm:gap-7">
+      {/* min-[560px] : l'écran large de l'iPhone Duo déplié (~590 px) passe déjà en
+          deux colonnes; max-height : en paysage court, on resserre la verticale. */}
+      <div className="flex-1 px-4 sm:px-8 lg:px-10 py-6 sm:py-8 [@media(max-height:560px)]:py-3 max-w-7xl mx-auto w-full flex flex-col gap-6 sm:gap-7 [@media(max-height:560px)]:gap-4">
         {turn && (
-          <div className="grid lg:grid-cols-[260px_1fr] gap-5 lg:gap-8 items-stretch">
+          <div className="grid min-[560px]:grid-cols-[240px_1fr] lg:grid-cols-[260px_1fr] gap-5 lg:gap-8 items-stretch">
             <MysteryCard key={turn.id} isYouActive={isActive} />
             {activePlayer && (
               <AudioPanel

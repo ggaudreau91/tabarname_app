@@ -21,7 +21,7 @@ export function MysteryCard({ isYouActive }: Props) {
         <div style={{ position: "absolute", right: -36, top: 28, opacity: 0.9, pointerEvents: "none" }}>
           <VinylDisc size={150} label="" spinning />
         </div>
-        <div style={{ position: "relative" }}>
+        <div className="tb-mystery-back" style={{ position: "relative" }}>
           <StripedCardBack w={150} h={210} label="T" />
         </div>
         <div className="tb-stamp" style={{ marginTop: 18, alignSelf: "flex-start", borderColor: isYouActive ? "var(--accent)" : "var(--ink-dim)", color: isYouActive ? "var(--accent)" : "var(--ink-dim)" }}>
