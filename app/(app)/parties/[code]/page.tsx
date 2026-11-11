@@ -129,7 +129,7 @@ export default function RoomPage({
   const playedUriRef = useRef<string | null>(null);
   // Tour dont l'extrait a déjà été mis en pause à la révélation.
   const pausedForTurnRef = useRef<string | null>(null);
-  const lastSeenActiveRef = useRef<string | null>(null);
+  const lastSeenTurnRef = useRef<string | null>(null);
   const timeoutFiredRef = useRef<string | null>(null);
 
   // Hydrate audioUnlocked depuis sessionStorage — un seul clic par onglet.
@@ -502,8 +502,12 @@ export default function RoomPage({
         cancelled = true;
       };
     }
-    if (lastSeenActiveRef.current === turn.active_player_id) return;
-    lastSeenActiveRef.current = turn.active_player_id;
+    // Réarme à chaque NOUVEAU TOUR (pas seulement au changement de joueur):
+    // si le même joueur enchaîne deux tours, le passReady du tour précédent
+    // restait vrai → l'ancre se posait et la musique partait sans « Je suis
+    // prêt ».
+    if (lastSeenTurnRef.current === turn.id) return;
+    lastSeenTurnRef.current = turn.id;
     const next = turn.phase !== "turn_playing";
     queueMicrotask(() => {
       if (!cancelled) setPassReady(next);
@@ -519,22 +523,11 @@ export default function RoomPage({
   // donc rien pour le chrono. L'ancre est posée quand le joueur entre
   // réellement dans son tour (overlay « Je suis prêt » fermé).
 
-  // Pose l'ancre quand le joueur entre réellement dans son tour (« Je suis
-  // prêt » touché, overlay fermé).
-  useEffect(() => {
-    if (!isLocalMode) return;
-    if (!turn || turn.phase !== "turn_playing") return;
-    if (!passReady) return; // l'overlay est encore affiché
-    if (localTurnAnchor?.turnId === turn.id) return;
-    const turnId = turn.id;
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) setLocalTurnAnchor({ turnId, at: new Date().toISOString() });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [isLocalMode, localTurnAnchor, turn, passReady]);
+  // L'ancre n'est posée QUE dans le geste « Je suis prêt » (onReady de
+  // l'overlay) — jamais dans un effet. Un effet qui lisait passReady voyait
+  // encore le `true` périmé du tour précédent (sa réinitialisation est
+  // différée en microtâche) et posait l'ancre du nouveau tour avant le tap,
+  // ce qui lançait la musique derrière l'overlay « Passe l'appareil ».
 
   // En local: la "timeline du joueur courant" est celle du joueur virtuel actif.
   // En online: c'est celle de l'auth user.
@@ -1014,9 +1007,12 @@ export default function RoomPage({
         onReady={() => {
           setPassReady(true);
           unlockAudio();
-          // Le chrono serveur repart MAINTENANT: le tour a été créé à la
-          // résolution du précédent, pendant l'écran de révélation.
           if (turn) {
+            // Ancre du vrai début de tour: chrono et musique ne démarrent
+            // qu'à partir d'ici (posée dans le geste, jamais dans un effet).
+            setLocalTurnAnchor({ turnId: turn.id, at: new Date().toISOString() });
+            // Le chrono serveur repart MAINTENANT: le tour a été créé à la
+            // résolution du précédent, pendant l'écran de révélation.
             callApi(`/api/parties/${upperCode}/ready`, { turn_id: turn.id }).catch((e) =>
               console.warn("[ready] reset du chrono raté", e),
             );
