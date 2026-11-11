@@ -46,7 +46,7 @@ function TopBar() {
   // « Retour » vit à GAUCHE, collé au logo: sur l'iPhone Duo fermé, la bande
   // système (horloge) occupe le coin supérieur droit et recouvrirait le bouton.
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "4px 0 0" }}>
+    <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "10px 14px", padding: "4px 0 0" }}>
       <Link
         href="/"
         className="tb-mono"
@@ -75,7 +75,7 @@ function SectionLabel({
   href?: string;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", margin: "26px 0 12px" }}>
+    <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "4px 14px", margin: "26px 0 12px" }}>
       <div
         className="tb-mono"
         style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--ink-dim)", whiteSpace: "nowrap" }}

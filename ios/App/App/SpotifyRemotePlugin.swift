@@ -63,6 +63,10 @@ public class SpotifyRemotePlugin: CAPPlugin, CAPBridgedPlugin {
     private var pendingConnectCall: CAPPluginCall?
     private var pendingAuthorizeCall: CAPPluginCall?
     private var lastPlayerState: SPTAppRemotePlayerState?
+    // authorizeAndPlayURI("") réveille Spotify en REPRENANT la dernière piste
+    // (limitation connue du SDK: aucun réveil silencieux). On marque le réveil
+    // pour mettre en pause dès que la connexion s'établit.
+    private var pauseOnNextConnect = false
 
     public override func load() {
         SpotifyRemotePlugin.shared = self
@@ -226,6 +230,11 @@ extension SpotifyRemotePlugin: SPTAppRemoteDelegate {
     public func appRemoteDidEstablishConnection(_ appRemote: SPTAppRemote) {
         appRemote.playerAPI?.delegate = self
         appRemote.playerAPI?.subscribe(toPlayerState: { _, _ in })
+        if pauseOnNextConnect {
+            // Stoppe la reprise déclenchée par authorizeAndPlayURI("").
+            pauseOnNextConnect = false
+            appRemote.playerAPI?.pause(nil)
+        }
         notifyListeners("connected", data: [:])
         pendingConnectCall?.resolve(["connected": true])
         pendingConnectCall = nil
@@ -235,6 +244,8 @@ extension SpotifyRemotePlugin: SPTAppRemoteDelegate {
         // Spotify n'est probablement pas lancé → on le réveille + autorise.
         // authorizeAndPlayURI lance Spotify; le token revient via le redirect
         // URI (handleOpenURL). Le Bool indique seulement si Spotify est installé.
+        // Le réveil REPREND la lecture (URI vide = resume) → pause au connect.
+        pauseOnNextConnect = true
         appRemote.authorizeAndPlayURI("") { [weak self] spotifyInstalled in
             guard let self = self else { return }
             if !spotifyInstalled {

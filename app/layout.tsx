@@ -69,12 +69,13 @@ export default function RootLayout({
         className="min-h-full flex flex-col font-sans"
         style={{ background: "#070b12" }}
       >
-        {/* Colonne mobile centrée — l'app est avant tout une app iOS (Capacitor).
-            Sur le web, le contenu reste dans un téléphone navy centré. */}
+        {/* Colonne centrée sur le web desktop. 700 (et non 460) pour que
+            l'iPhone Duo déplié (~466-678 pt) occupe TOUTE la largeur — à 460,
+            l'app flottait dans des bandes noires sur le grand écran. */}
         <div
           className="tb mx-auto flex w-full flex-1 flex-col"
           style={{
-            maxWidth: 460,
+            maxWidth: 700,
             background: "var(--bg)",
             color: "var(--ink)",
             boxShadow: "0 0 60px rgba(0,0,0,0.5)",

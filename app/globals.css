@@ -494,7 +494,15 @@
      de l'écran (boutons coupés au bord droit). */
   .duo-split > *, .duo-hero > * { min-width: 0; }
   .duo-split-aside {
-    position: sticky; top: 0; height: 100dvh; overflow: hidden;
-    display: flex !important; flex-direction: column; justify-content: center;
+    position: sticky; top: 0; height: 100dvh;
+    overflow: hidden; overflow-y: auto;
+    display: flex !important; flex-direction: column;
+    /* « safe » : si le contenu dépasse l'écran, on aligne en haut au lieu de
+       couper des deux bouts. */
+    justify-content: safe center;
   }
+  /* Colonne étroite: on retire le vinyle décoratif (il recouvrait le logo)
+     et on resserre le titre pour qu'il tienne sans déborder. */
+  .duo-split-aside > div:first-child { display: none; }
+  .duo-split-aside h1 { font-size: 34px !important; }
 }
