@@ -14,6 +14,7 @@ import { AudioPanel } from "@/components/game/AudioPanel";
 import { TimelineRail } from "@/components/game/TimelineRail";
 import { OthersStrip } from "@/components/game/OthersStrip";
 import { RevealOverlay } from "@/components/game/RevealOverlay";
+import { StripedCardBack } from "@/components/brand/StripedCardBack";
 import { PassDeviceOverlay } from "@/components/game/PassDeviceOverlay";
 import { VinylDisc } from "@/components/brand/VinylDisc";
 import { MetaLabel } from "@/components/brand/Stamp";
@@ -112,6 +113,10 @@ export default function RoomPage({
   } | null>(null);
   const [ownedPlayerIds, setOwnedPlayerIds] = useState<string[]>([]);
   const [passReady, setPassReady] = useState(false);
+  // Vrai entre la confirmation du placement et l'arrivée de la révélation
+  // (overlay « la carte se retourne »). Seulement quand les contestations
+  // sont désactivées — sinon la fenêtre de contestation doit se jouer.
+  const [resolvingReveal, setResolvingReveal] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [playbackStalled, setPlaybackStalled] = useState(false);
   const [paused, setPaused] = useState(false);
@@ -570,18 +575,31 @@ export default function RoomPage({
 
   async function submitGuess() {
     if (!turn || selectedSlot === null) return;
+    const turnId = turn.id;
+    const noChallenges = !room?.challenges_enabled;
     setSubmittingAction("guess");
     setError(null);
+    // Sans contestations, la révélation est inévitable: on l'annonce tout de
+    // suite (carte qui se retourne) au lieu de laisser le joueur fixer sa
+    // timeline en se demandant si ça a marché.
+    if (noChallenges) setResolvingReveal(true);
     try {
       await callApi(`/api/parties/${upperCode}/guess`, {
-        turn_id: turn.id,
+        turn_id: turnId,
         position: selectedSlot,
         // En local, on soumet "au nom du" joueur virtuel actif.
         as_player_id: isLocalMode ? turn.active_player_id : undefined,
       });
       setSelectedSlot(null);
+      if (noChallenges && room) {
+        // Résolution enchaînée immédiatement + rafraîchissement direct —
+        // sans attendre le round-trip temps réel (3-5 s de gagnés).
+        await callApi(`/api/parties/${upperCode}/resolve`, { turn_id: turnId });
+        await Promise.all([fetchTurn(turnId), fetchTimelines(room.id)]);
+      }
     } catch (e) {
       setError(String(e));
+      setResolvingReveal(false);
     } finally {
       setSubmittingAction(null);
     }
@@ -683,7 +701,15 @@ export default function RoomPage({
   useEffect(() => {
     setPaused(false);
     timeoutFiredRef.current = null;
+    setResolvingReveal(false);
   }, [turn?.id]);
+
+  // La révélation est arrivée: on range l'overlay « la carte se retourne ».
+  useEffect(() => {
+    if (turn && (turn.phase === "reveal" || turn.phase === "resolved")) {
+      setResolvingReveal(false);
+    }
+  }, [turn]);
 
   // Compte à rebours autoritaire de la phase de jeu (pausable). Sert au timeout.
   // En mode local, le chrono ne part qu'au « Je suis prêt » : avant ça, le
@@ -1310,6 +1336,30 @@ export default function RoomPage({
         hasChallenged={hasChallenged}
         onChallenge={() => setChallengeMode(true)}
       />
+
+      {/* Entre « Confirmer » et la révélation: la carte mystère se retourne
+          plein écran — le joueur sait que le verdict s'en vient. */}
+      {resolvingReveal && !showReveal && (
+        <div
+          className="tb"
+          style={{
+            position: "fixed", inset: 0, zIndex: 60,
+            display: "flex", flexDirection: "column", alignItems: "center",
+            justifyContent: "center", gap: 22,
+            background: "rgba(10, 18, 32, 0.92)", backdropFilter: "blur(6px)",
+          }}
+        >
+          <div className="tb-flip" style={{ filter: "drop-shadow(0 18px 40px rgba(0,0,0,0.5))" }}>
+            <StripedCardBack w={150} h={210} label="T" />
+          </div>
+          <div
+            className="tb-mono"
+            style={{ fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--gold)" }}
+          >
+            Révélation…
+          </div>
+        </div>
+      )}
 
       {showReveal && turn?.effective_year && turn.title && turn.artists && (
         <RevealOverlay

@@ -546,3 +546,13 @@
 @media (prefers-reduced-motion: reduce) {
   .tb-btn, .tb button:not([class*="tb-btn"]) { transition: none; }
 }
+
+/* Carte qui se retourne pendant la résolution (entre « Confirmer » et la
+   révélation). */
+.tb-flip { animation: tb-flip 1.1s ease-in-out infinite; }
+@keyframes tb-flip {
+  0%   { transform: perspective(700px) rotateY(0deg); }
+  50%  { transform: perspective(700px) rotateY(180deg); }
+  100% { transform: perspective(700px) rotateY(360deg); }
+}
+@media (prefers-reduced-motion: reduce) { .tb-flip { animation: none; } }
