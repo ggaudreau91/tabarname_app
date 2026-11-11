@@ -127,6 +127,8 @@ export default function RoomPage({
   const [playbackStalled, setPlaybackStalled] = useState(false);
   const [paused, setPaused] = useState(false);
   const playedUriRef = useRef<string | null>(null);
+  // Tour dont l'extrait a déjà été mis en pause à la révélation.
+  const pausedForTurnRef = useRef<string | null>(null);
   const lastSeenActiveRef = useRef<string | null>(null);
   const timeoutFiredRef = useRef<string | null>(null);
 
@@ -442,6 +444,18 @@ export default function RoomPage({
     shouldPlayAudio,
     playerMode,
   ]);
+
+  // Fin de l'extrait: dès que le tour est résolu (révélation), on met la
+  // musique en pause — sinon la piste continuait pendant « Bien joué » et
+  // « Passe l'appareil », et on croyait que le tour suivant était parti.
+  useEffect(() => {
+    if (!turn) return;
+    if (turn.phase !== "resolved" && turn.phase !== "reveal") return;
+    if (!shouldPlayAudio) return;
+    if (pausedForTurnRef.current === turn.id) return; // une seule pause par tour
+    pausedForTurnRef.current = turn.id;
+    void pause().catch(() => {});
+  }, [turn?.id, turn?.phase, shouldPlayAudio, pause, turn]);
 
   // Retry manuel: déclenché par le bouton "Réessayer" — re-tente la lecture
   // du tour courant.
