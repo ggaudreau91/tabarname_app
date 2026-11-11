@@ -488,6 +488,9 @@
   .duo-row > a { flex: 1; }
   /* Colonne titre fixe + contenu défilant à droite (création de partie). */
   .duo-split { display: grid !important; grid-template-columns: minmax(250px, 36%) 1fr; }
+  /* Sans min-width:0, le contenu du formulaire force la piste 1fr à déborder
+     de l'écran (boutons coupés au bord droit). */
+  .duo-split > *, .duo-hero > * { min-width: 0; }
   .duo-split-aside {
     position: sticky; top: 0; height: 100dvh; overflow: hidden;
     display: flex !important; flex-direction: column; justify-content: center;
