@@ -51,6 +51,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Sans maximumScale, iOS zoome automatiquement sur les champs < 16px et
+  // l'app peut rester coincée zoomée (vécu en ajoutant une playlist).
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
   themeColor: "#0A1220",
 };

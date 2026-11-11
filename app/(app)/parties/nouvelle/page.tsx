@@ -584,7 +584,8 @@ export default function NewPartyPage() {
                     style={{
                       flex: 1, minWidth: 0, padding: "11px 12px", borderRadius: 10,
                       background: "var(--surface)", border: "1.5px solid var(--line-strong)",
-                      color: "var(--ink)", fontSize: 13, outline: "none",
+                      // ≥ 16px: sous ce seuil, iOS zoome automatiquement au focus.
+                      color: "var(--ink)", fontSize: 16, outline: "none",
                     }}
                   />
                   <button
@@ -610,7 +611,9 @@ export default function NewPartyPage() {
           <SectionLabel n="03">Mode de jeu</SectionLabel>
           {isMobile && (
             <div style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "12px 14px", borderRadius: 14, background: "rgba(210,162,76,0.12)", border: "1px solid var(--line)", marginBottom: 12 }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", marginTop: 6, flexShrink: 0 }} />
+              <span style={{ flexShrink: 0, marginTop: 1, display: "inline-flex" }} aria-hidden>
+                <GlyphIcon kind="headphones" size={17} color="var(--gold)" />
+              </span>
               <p style={{ fontSize: 12.5, lineHeight: 1.45, color: "var(--ink-2)" }}>
                 Sur iPhone, le son sort de ton <b style={{ color: "var(--ink)" }}>app Spotify</b> (Connect). Garde-la ouverte en arrière-plan pendant la partie.
               </p>

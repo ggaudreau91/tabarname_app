@@ -1,6 +1,7 @@
 "use client";
 
 import { useSpotifyPlayer } from "./SpotifyPlayerProvider";
+import { GlyphIcon } from "@/components/brand/GlyphIcon";
 
 type Props = {
   /** Si true, on doit pouvoir jouer (mode online ou je suis l'hôte en host_audio) */
@@ -36,25 +37,33 @@ export function SpotifyStatusBar({ needsToPlay }: Props) {
 
   if (!message) return null;
 
+  // Teintes de la charte (les anciennes variables crème/brun n'existent plus).
   const colors = {
-    info: { bg: "var(--creme-2)", color: "var(--brun)", border: "var(--creme-3)" },
-    warning: { bg: "rgba(212,166,86,0.15)", color: "var(--brun)", border: "var(--or)" },
-    error: { bg: "rgba(139,35,49,0.10)", color: "var(--oxblood)", border: "var(--oxblood)" },
+    info: { bg: "var(--surface-2)", color: "var(--ink-2)", border: "var(--line-strong)", dot: "var(--ink-dim)" },
+    warning: { bg: "rgba(210,162,76,0.12)", color: "var(--ink)", border: "rgba(210,162,76,0.5)", dot: "var(--gold)" },
+    error: { bg: "rgba(229,72,77,0.10)", color: "var(--ink)", border: "rgba(229,72,77,0.5)", dot: "var(--destructive)" },
   }[kind];
 
   return (
     <div
-      className="font-mono"
       style={{
-        padding: "10px 16px",
+        margin: "10px 16px 0",
+        padding: "10px 14px",
         background: colors.bg,
         color: colors.color,
-        borderLeft: `3px solid ${colors.border}`,
-        fontSize: 12,
-        letterSpacing: "0.05em",
+        border: `1px solid ${colors.border}`,
+        borderRadius: 14,
+        fontSize: 13,
+        lineHeight: 1.45,
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 10,
       }}
     >
-      <span style={{ fontWeight: 600 }}>SPOTIFY</span> · {message}
+      <span style={{ flexShrink: 0, marginTop: 1, display: "inline-flex" }} aria-hidden>
+        <GlyphIcon kind="spotify" size={18} color="var(--spotify)" />
+      </span>
+      <span>{message}</span>
     </div>
   );
 }

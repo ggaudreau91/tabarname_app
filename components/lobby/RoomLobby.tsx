@@ -5,6 +5,7 @@ import { PlayerAvatar, colorForPlayer } from "@/components/brand/PlayerAvatar";
 import { Stamp } from "@/components/brand/Stamp";
 import { StatusPill } from "@/components/brand/StatusPill";
 import { Btn } from "@/components/brand/Btn";
+import { GlyphIcon } from "@/components/brand/GlyphIcon";
 import type { LobbyPlayer } from "@/components/lobby/PlayerList";
 
 type Props = {
@@ -105,19 +106,31 @@ export function RoomLobby({
         <div className="tb-mono" style={{ fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase", color: "var(--gold)", marginBottom: 12 }}>Code de la salle · partage-le</div>
         <TicketCard code={code} url={`tabarname.app/j/${code}`} />
 
+        {/* Icônes au trait (charte) plutôt qu'emoji; confirmation dorée au copié. */}
         <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-          <button
-            onClick={onCopyCode}
-            style={{ flex: 1, padding: "13px 10px", borderRadius: 12, border: "1px solid var(--panel-line)", color: "var(--hero-ink)", background: "rgba(255,255,255,0.04)", fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
-          >
-            ⧉ {copied === "code" ? "Copié!" : "Copier le code"}
-          </button>
-          <button
-            onClick={onCopyLink}
-            style={{ flex: 1, padding: "13px 10px", borderRadius: 12, border: "1px solid var(--panel-line)", color: "var(--hero-ink)", background: "rgba(255,255,255,0.04)", fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer" }}
-          >
-            🔗 {copied === "link" ? "Copié!" : "Copier le lien"}
-          </button>
+          {([
+            ["code", "Copier le code", "copy", onCopyCode],
+            ["link", "Copier le lien", "link", onCopyLink],
+          ] as const).map(([key, label, icon, onClick]) => {
+            const done = copied === key;
+            return (
+              <button
+                key={key}
+                onClick={onClick}
+                style={{
+                  flex: 1, padding: "13px 10px", borderRadius: 12,
+                  border: `1px solid ${done ? "var(--gold)" : "var(--panel-line)"}`,
+                  color: done ? "var(--gold)" : "var(--hero-ink)",
+                  background: done ? "rgba(210,162,76,0.12)" : "rgba(255,255,255,0.04)",
+                  fontSize: 14, fontWeight: 500, display: "flex", alignItems: "center",
+                  justifyContent: "center", gap: 8, cursor: "pointer",
+                }}
+              >
+                <GlyphIcon kind={done ? "check" : icon} size={17} color={done ? "var(--gold)" : "var(--panel-dim)"} />
+                {done ? "Copié!" : label}
+              </button>
+            );
+          })}
         </div>
 
         {playlistName && (

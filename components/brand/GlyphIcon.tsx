@@ -1,5 +1,5 @@
 // Petites icônes au trait (sans emoji) pour les cartes de mode & lignes Spotify.
-type Kind = "globe" | "headphones" | "table" | "copy" | "spotify";
+type Kind = "globe" | "headphones" | "table" | "copy" | "link" | "check" | "spotify";
 
 export function GlyphIcon({
   kind,
@@ -42,6 +42,17 @@ export function GlyphIcon({
       <g {...p}>
         <rect x="9" y="9" width="11" height="11" rx="2" />
         <path d="M5 15V5a2 2 0 0 1 2-2h8" />
+      </g>
+    ),
+    link: (
+      <g {...p}>
+        <path d="M10 14a4.2 4.2 0 0 0 6 0l3-3a4.24 4.24 0 1 0-6-6l-1.2 1.2" />
+        <path d="M14 10a4.2 4.2 0 0 0-6 0l-3 3a4.24 4.24 0 1 0 6 6l1.2-1.2" />
+      </g>
+    ),
+    check: (
+      <g {...p}>
+        <path d="M4.5 12.5l5 5L19.5 7" />
       </g>
     ),
     spotify: (
