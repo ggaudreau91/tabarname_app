@@ -505,13 +505,25 @@ export default function RoomPage({
   // réellement dans son tour (overlay « Je suis prêt » fermé).
   const [localTurnAnchor, setLocalTurnAnchor] = useState<string | null>(null);
   useEffect(() => {
-    setLocalTurnAnchor(null);
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLocalTurnAnchor(null);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [turn?.id]);
   useEffect(() => {
     if (!isLocalMode || localTurnAnchor) return;
     if (!turn || turn.phase !== "turn_playing") return;
     if (!passReady) return; // l'overlay est encore affiché
-    setLocalTurnAnchor(new Date().toISOString());
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setLocalTurnAnchor(new Date().toISOString());
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [isLocalMode, localTurnAnchor, turn, passReady]);
 
   // En local: la "timeline du joueur courant" est celle du joueur virtuel actif.
@@ -706,9 +718,14 @@ export default function RoomPage({
 
   // La révélation est arrivée: on range l'overlay « la carte se retourne ».
   useEffect(() => {
-    if (turn && (turn.phase === "reveal" || turn.phase === "resolved")) {
-      setResolvingReveal(false);
-    }
+    if (!turn || (turn.phase !== "reveal" && turn.phase !== "resolved")) return;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (!cancelled) setResolvingReveal(false);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [turn]);
 
   // Compte à rebours autoritaire de la phase de jeu (pausable). Sert au timeout.

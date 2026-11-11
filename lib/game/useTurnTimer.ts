@@ -20,8 +20,12 @@ export function useTurnTimer(
   const pausedAtRef = useRef<number | null>(null);
   // Miroir de `paused` lisible dans le reset sans le mettre en dépendance
   // (sinon chaque bascule de pause réinitialiserait le compte à rebours).
+  // Mis à jour dans un effet sans dépendances (déclaré AVANT le reset pour
+  // s'exécuter en premier) — pas d'écriture de ref pendant le rendu.
   const pausedNowRef = useRef(paused);
-  pausedNowRef.current = paused;
+  useEffect(() => {
+    pausedNowRef.current = paused;
+  });
   const [remaining, setRemaining] = useState(durationSeconds);
 
   // Reset sur nouveau tour / nouvelle phase / durée modifiée.
